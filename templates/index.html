@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portuguese Verb Conjugation Practice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+        }
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .auth-button {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .login-button {
+            background-color: transparent;
+            border: 2px solid #4CAF50;
+            color: #4CAF50;
+        }
+        .register-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+        }
+        .container {
+            display: flex;
+            margin-top: 64px; /* Header height */
+            min-height: calc(100vh - 64px);
+        }
+        .nav-panel {
+            width: 250px;
+            background-color: white;
+            padding: 1rem;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 64px;
+            bottom: 0;
+            left: 0;
+        }
+        .nav-item {
+            display: block;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .nav-item:hover {
+            background-color: #f0f0f0;
+        }
+        .nav-item.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            padding: 2rem 4rem;
+            margin-left: 250px; /* Nav panel width */
+        }
+        .score {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .conjugation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            table-layout: fixed;
+        }
+        .conjugation-table th, .conjugation-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            width: 33.33%;
+        }
+        .conjugation-table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .conjugation-input {
+            width: 90%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .correct {
+            background-color: #e8f5e9;
+        }
+        .incorrect {
+            background-color: #ffebee;
+        }
+        .special-chars {
+            margin-bottom: 20px;
+        }
+        .special-char-btn {
+            padding: 8px 12px;
+            margin: 4px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+        }
+        .special-char-btn:hover {
+            background-color: #f0f0f0;
+        }
+        .verbs-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .verb-card {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .verb-card:hover {
+            transform: translateY(-2px);
+            background-color: #f0f0f0;
+        }
+        .verb-card.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .practice-area {
+            display: none;
+        }
+        .practice-area.active {
+            display: block;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .btn-reset {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-reset:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-container">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM0Q0FGNTAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMyAxMWwxOC0xbC0xMCA4TDMgMTF6Ii8+PHBhdGggZD0iTTExIDE4bDQtNiIvPjwvc3ZnPg==" alt="Logo" class="logo">
+            <span class="logo-text">Verb Master</span>
+        </div>
+        <div class="auth-buttons">
+            <a href="#" class="auth-button login-button">Login</a>
+            <a href="#" class="auth-button register-button">Register</a>
+        </div>
+    </header>
+    
+    <div class="container">
+        <nav class="nav-panel">
+            <a href="/" class="nav-item {% if verb_type == 'irregular' %}active{% endif %}">
+                Irregular Verbs
+            </a>
+            <a href="/regular" class="nav-item {% if verb_type == 'regular' %}active{% endif %}">
+                Regular Verbs (-ar, -er, -ir)
+            </a>
+        </nav>
+        
+        <div class="main-content">
+            <h1>{% if verb_type == 'regular' %}Regular{% else %}Irregular{% endif %} Portuguese Verbs</h1>
+            <div class="score">Score: <span id="score">0</span></div>
+            
+            <div class="controls">
+                <button class="btn btn-reset" id="resetButton">Reset Game</button>
+            </div>
+
+            <div class="special-chars">
+                <button class="special-char-btn">á</button>
+                <button class="special-char-btn">à</button>
+                <button class="special-char-btn">â</button>
+                <button class="special-char-btn">ã</button>
+                <button class="special-char-btn">é</button>
+                <button class="special-char-btn">ê</button>
+                <button class="special-char-btn">í</button>
+                <button class="special-char-btn">ó</button>
+                <button class="special-char-btn">ô</button>
+                <button class="special-char-btn">õ</button>
+                <button class="special-char-btn">ú</button>
+                <button class="special-char-btn">ç</button>
+            </div>
+
+            <h2>Select a Verb to Practice</h2>
+            <div class="verbs-list">
+                {% for verb in verbs %}
+                <div class="verb-card" data-verb="{{ verb }}">
+                    {{ verb }}
+                </div>
+                {% endfor %}
+            </div>
+
+            {% for verb in verbs %}
+            <div class="practice-area" id="practice-{{ verb }}">
+                <h3>Practicing: {{ verb }}</h3>
+                <table class="conjugation-table">
+                    <thead>
+                        <tr>
+                            <th>Person</th>
+                            <th>Presente</th>
+                            <th>Pretérito Perfeito Simples</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in ['eu', 'tu', 'ele', 'nós', 'eles'] %}
+                        <tr>
+                            <td>{{ person }}</td>
+                            <td>
+                                <input type="text" 
+                                       class="conjugation-input"
+                                       data-verb="{{ verb }}"
+                                       data-tense="presente"
+                                       data-person="{{ person }}"
+                                       data-answer="{{ verbs[verb]['presente'][person] }}">
+                            </td>
+                            <td>
+                                <input type="text"
+                                       class="conjugation-input"
+                                       data-verb="{{ verb }}"
+                                       data-tense="preterito_perfeito"
+                                       data-person="{{ person }}"
+                                       data-answer="{{ verbs[verb]['preterito_perfeito'][person] }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        const scoreElement = document.getElementById('score');
+        const resetButton = document.getElementById('resetButton');
+        const verbCards = document.querySelectorAll('.verb-card');
+        const practiceAreas = document.querySelectorAll('.practice-area');
+        let lastFocusedInput = null; // Keep track of last focused input
+
+        // Track focus on inputs
+        document.querySelectorAll('.conjugation-input').forEach(input => {
+            input.addEventListener('focus', () => {
+                lastFocusedInput = input;
+            });
+        });
+
+        // Reset game
+        resetButton.addEventListener('click', () => {
+            score = 0;
+            scoreElement.textContent = score;
+            document.querySelectorAll('.conjugation-input').forEach(input => {
+                input.value = '';
+                input.classList.remove('correct', 'incorrect');
+            });
+        });
+
+        // Verb selection
+        verbCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const verb = card.dataset.verb;
+                
+                // Update active states
+                verbCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                
+                practiceAreas.forEach(area => {
+                    area.classList.remove('active');
+                    if (area.id === `practice-${verb}`) {
+                        area.classList.add('active');
+                    }
+                });
+
+                // Reset inputs for the selected verb
+                document.querySelectorAll(`#practice-${verb} .conjugation-input`).forEach(input => {
+                    input.value = '';
+                    input.classList.remove('correct', 'incorrect');
+                });
+            });
+        });
+
+        // Special character buttons
+        document.querySelectorAll('.special-char-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                let targetInput = lastFocusedInput;
+                
+                // If no input was focused before, use the first input of active practice area
+                if (!targetInput || !targetInput.classList.contains('conjugation-input')) {
+                    targetInput = document.querySelector('.practice-area.active .conjugation-input');
+                    if (targetInput) {
+                        lastFocusedInput = targetInput;
+                    } else {
+                        return;
+                    }
+                }
+
+                // Get the current value and append the new character
+                let currentText = targetInput.value || '';
+                let newText = currentText + button.textContent;
+                
+                // Set the new value
+                targetInput.value = newText;
+                
+                // Keep the input focused
+                targetInput.focus();
+                
+                // Prevent any default behavior
+                event.preventDefault();
+            });
+        });
+
+        // Handle conjugation inputs
+        document.querySelectorAll('.conjugation-input').forEach(input => {
+            input.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    const response = await fetch('/check', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            verb: input.dataset.verb,
+                            tense: input.dataset.tense,
+                            person: input.dataset.person,
+                            answer: input.value
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.correct) {
+                        input.classList.add('correct');
+                        input.classList.remove('incorrect');
+                        score += 10;
+                    } else {
+                        input.classList.add('incorrect');
+                        input.classList.remove('correct');
+                        score -= 5;
+                    }
+                    scoreElement.textContent = score;
+                }
+            });
+
+            // Double click to reveal answer
+            input.addEventListener('dblclick', () => {
+                input.value = input.dataset.answer;
+                score -= 15;
+                scoreElement.textContent = score;
+            });
+        });
+
+        // Activate the first verb by default
+        if (verbCards.length > 0) {
+            verbCards[0].click();
+        }
+    </script>
+</body>
+</html>
