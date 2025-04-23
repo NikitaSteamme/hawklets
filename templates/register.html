@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar-se</title>
+</head>
+<body>
+    <h1>Registrar-se</h1>
+    <form method="post">
+        <label>Email:<br><input type="email" name="email" required></label><br>
+        <label>Senha:<br><input type="password" name="password" required></label><br>
+        <button type="submit">Registrar-se</button>
+    </form>
+    <p><a href="/login">Já tem uma conta? Entrar</a></p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>

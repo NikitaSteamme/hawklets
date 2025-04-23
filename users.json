@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "username": "demo",
+    "email": "demo@example.com",
+    "password": "scrypt:32768:8:1$Yee4N274QRZ3t7QW$0e0fdbb29c7166c52e42314322a3a7a6e08fe64e476b0a1fcf7136a373c6d5757bbf61a30bc2763496baf1d48076866bd2b475bc251aa6c8900230beb9ad079a",
+    "progress": {}
+  }
+]

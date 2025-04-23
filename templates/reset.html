@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Redefinir Senha</title>
+</head>
+<body>
+    <h1>Redefinir Senha</h1>
+    <form method="post">
+        <label>Email:<br><input type="email" name="email" required></label><br>
+        <button type="submit">Redefinir senha</button>
+    </form>
+    <p><a href="/login">Voltar ao login</a></p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>
