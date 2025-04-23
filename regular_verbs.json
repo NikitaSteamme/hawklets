@@ -1,0 +1,27 @@
+{
+  "falar": {
+    "infinitive": "falar",
+    "presente_do_indicativo": {"eu": "falo", "tu": "falas", "ele": "fala", "nós": "falamos", "eles": "falam"},
+    "preterito_perfeito": {"eu": "falei", "tu": "falaste", "ele": "falou", "nós": "falamos", "eles": "falaram"},
+    "preterito_imperfeito": {"eu": "falava", "tu": "falavas", "ele": "falava", "nós": "falávamos", "eles": "falavam"},
+    "preterito_mais_que_perfeito": {"eu": "falara", "tu": "falaras", "ele": "falara", "nós": "faláramos", "eles": "falaram"},
+    "futuro_simples_do_indicativo": {"eu": "falarei", "tu": "falarás", "ele": "falará", "nós": "falaremos", "eles": "falarão"}
+  },
+  "comer": {
+    "infinitive": "comer",
+    "presente_do_indicativo": {"eu": "como", "tu": "comes", "ele": "come", "nós": "comemos", "eles": "comem"},
+    "preterito_perfeito": {"eu": "comi", "tu": "comeste", "ele": "comeu", "nós": "comemos", "eles": "comeram"},
+    "preterito_imperfeito": {"eu": "comia", "tu": "comias", "ele": "comia", "nós": "comíamos", "eles": "comiam"},
+    "preterito_mais_que_perfeito": {"eu": "comera", "tu": "comeras", "ele": "comera", "nós": "comêramos", "eles": "comeram"},
+    "futuro_simples_do_indicativo": {"eu": "comerei", "tu": "comerás", "ele": "comerá", "nós": "comeremos", "eles": "comerão"}
+  },
+  "partir": {
+    "infinitive": "partir",
+    "presente_do_indicativo": {"eu": "parto", "tu": "partes", "ele": "parte", "nós": "partimos", "eles": "partem"},
+    "preterito_perfeito": {"eu": "parti", "tu": "partiste", "ele": "partiu", "nós": "partimos", "eles": "partiram"},
+    "preterito_imperfeito": {"eu": "partia", "tu": "partias", "ele": "partia", "nós": "partíamos", "eles": "partiam"},
+    "preterito_mais_que_perfeito": {"eu": "partira", "tu": "partiras", "ele": "partira", "nós": "partíramos", "eles": "partiram"},
+    "futuro_simples_do_indicativo": {"eu": "partirei", "tu": "partirás", "ele": "partirá", "nós": "partiremos", "eles": "partirão"}
+  }
+}
+

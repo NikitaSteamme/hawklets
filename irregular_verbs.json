@@ -1,0 +1,90 @@
+{
+  "ser": {
+    "infinitive": "ser",
+    "presente_do_indicativo": {"eu": "sou", "tu": "és", "ele": "é", "nós": "somos", "eles": "são"},
+    "preterito_perfeito": {"eu": "fui", "tu": "foste", "ele": "foi", "nós": "fomos", "eles": "foram"},
+    "preterito_imperfeito": {"eu": "era", "tu": "eras", "ele": "era", "nós": "éramos", "eles": "eram"},
+    "preterito_mais_que_perfeito": {"eu": "fora", "tu": "foras", "ele": "fora", "nós": "fôramos", "eles": "foram"},
+    "futuro_simples_do_indicativo": {"eu": "serei", "tu": "serás", "ele": "será", "nós": "seremos", "eles": "serão"}
+  },
+  "estar": {
+    "infinitive": "estar",
+    "presente_do_indicativo": {"eu": "estou", "tu": "estás", "ele": "está", "nós": "estamos", "eles": "estão"},
+    "preterito_perfeito": {"eu": "estive", "tu": "estiveste", "ele": "esteve", "nós": "estivemos", "eles": "estiveram"},
+    "preterito_imperfeito": {"eu": "estava", "tu": "estavas", "ele": "estava", "nós": "estávamos", "eles": "estavam"},
+    "preterito_mais_que_perfeito": {"eu": "estivera", "tu": "estiveras", "ele": "estivera", "nós": "estivéramos", "eles": "estiveram"},
+    "futuro_simples_do_indicativo": {"eu": "estarei", "tu": "estarás", "ele": "estará", "nós": "estaremos", "eles": "estarão"}
+  },
+  "ter": {
+    "infinitive": "ter",
+    "presente_do_indicativo": {"eu": "tenho", "tu": "tens", "ele": "tem", "nós": "temos", "eles": "têm"},
+    "preterito_perfeito": {"eu": "tive", "tu": "tiveste", "ele": "teve", "nós": "tivemos", "eles": "tiveram"},
+    "preterito_imperfeito": {"eu": "tinha", "tu": "tinhas", "ele": "tinha", "nós": "tínhamos", "eles": "tinham"},
+    "preterito_mais_que_perfeito": {"eu": "tivera", "tu": "tiveras", "ele": "tivera", "nós": "tivéramos", "eles": "tiveram"},
+    "futuro_simples_do_indicativo": {"eu": "terei", "tu": "terás", "ele": "terá", "nós": "teremos", "eles": "terão"}
+  },
+  "fazer": {
+    "infinitive": "fazer",
+    "presente_do_indicativo": {"eu": "faço", "tu": "fazes", "ele": "faz", "nós": "fazemos", "eles": "fazem"},
+    "preterito_perfeito": {"eu": "fiz", "tu": "fizeste", "ele": "fez", "nós": "fizemos", "eles": "fizeram"},
+    "preterito_imperfeito": {"eu": "fazia", "tu": "fazias", "ele": "fazia", "nós": "fazíamos", "eles": "faziam"},
+    "preterito_mais_que_perfeito": {"eu": "fizera", "tu": "fizeras", "ele": "fizera", "nós": "fizéramos", "eles": "fizeram"},
+    "futuro_simples_do_indicativo": {"eu": "farei", "tu": "farás", "ele": "fará", "nós": "faremos", "eles": "farão"}
+  },
+  "ir": {
+    "infinitive": "ir",
+    "presente_do_indicativo": {"eu": "vou", "tu": "vais", "ele": "vai", "nós": "vamos", "eles": "vão"},
+    "preterito_perfeito": {"eu": "fui", "tu": "foste", "ele": "foi", "nós": "fomos", "eles": "foram"},
+    "preterito_imperfeito": {"eu": "ia", "tu": "ias", "ele": "ia", "nós": "íamos", "eles": "iam"},
+    "preterito_mais_que_perfeito": {"eu": "fora", "tu": "foras", "ele": "fora", "nós": "fôramos", "eles": "foram"},
+    "futuro_simples_do_indicativo": {"eu": "irei", "tu": "irás", "ele": "irá", "nós": "iremos", "eles": "irão"}
+  },
+  "poder": {
+    "infinitive": "poder",
+    "presente_do_indicativo": {"eu": "posso", "tu": "podes", "ele": "pode", "nós": "podemos", "eles": "podem"},
+    "preterito_perfeito": {"eu": "pude", "tu": "pudeste", "ele": "pôde", "nós": "pudemos", "eles": "puderam"},
+    "preterito_imperfeito": {"eu": "podia", "tu": "podias", "ele": "podia", "nós": "podíamos", "eles": "podiam"},
+    "preterito_mais_que_perfeito": {"eu": "pudera", "tu": "puderas", "ele": "pudera", "nós": "pudéramos", "eles": "puderam"},
+    "futuro_simples_do_indicativo": {"eu": "poderei", "tu": "poderás", "ele": "poderá", "nós": "poderemos", "eles": "poderão"}
+  },
+  "dizer": {
+    "infinitive": "dizer",
+    "presente_do_indicativo": {"eu": "digo", "tu": "dizes", "ele": "diz", "nós": "dizemos", "eles": "dizem"},
+    "preterito_perfeito": {"eu": "disse", "tu": "disseste", "ele": "disse", "nós": "dissemos", "eles": "disseram"},
+    "preterito_imperfeito": {"eu": "dizia", "tu": "dizias", "ele": "dizia", "nós": "dizíamos", "eles": "diziam"},
+    "preterito_mais_que_perfeito": {"eu": "dissera", "tu": "disseras", "ele": "dissera", "nós": "disséramos", "eles": "disseram"},
+    "futuro_simples_do_indicativo": {"eu": "direi", "tu": "dirás", "ele": "dirá", "nós": "diremos", "eles": "dirão"}
+  },
+  "ver": {
+    "infinitive": "ver",
+    "presente_do_indicativo": {"eu": "vejo", "tu": "vês", "ele": "vê", "nós": "vemos", "eles": "veem"},
+    "preterito_perfeito": {"eu": "vi", "tu": "viste", "ele": "viu", "nós": "vimos", "eles": "viram"},
+    "preterito_imperfeito": {"eu": "via", "tu": "vias", "ele": "via", "nós": "víamos", "eles": "viam"},
+    "preterito_mais_que_perfeito": {"eu": "vira", "tu": "viras", "ele": "vira", "nós": "víramos", "eles": "viram"},
+    "futuro_simples_do_indicativo": {"eu": "verei", "tu": "verás", "ele": "verá", "nós": "veremos", "eles": "verão"}
+  },
+  "vir": {
+    "infinitive": "vir",
+    "presente_do_indicativo": {"eu": "venho", "tu": "vens", "ele": "vem", "nós": "vimos", "eles": "vêm"},
+    "preterito_perfeito": {"eu": "vim", "tu": "vieste", "ele": "veio", "nós": "viemos", "eles": "vieram"},
+    "preterito_imperfeito": {"eu": "vinha", "tu": "vinhas", "ele": "vinha", "nós": "vínhamos", "eles": "vinham"},
+    "preterito_mais_que_perfeito": {"eu": "viera", "tu": "vieras", "ele": "viera", "nós": "viéramos", "eles": "vieram"},
+    "futuro_simples_do_indicativo": {"eu": "virei", "tu": "virás", "ele": "virá", "nós": "viremos", "eles": "virão"}
+  },
+  "saber": {
+    "infinitive": "saber",
+    "presente_do_indicativo": {"eu": "sei", "tu": "sabes", "ele": "sabe", "nós": "sabemos", "eles": "sabem"},
+    "preterito_perfeito": {"eu": "soube", "tu": "soubeste", "ele": "soube", "nós": "soubemos", "eles": "souberam"},
+    "preterito_imperfeito": {"eu": "sabia", "tu": "sabias", "ele": "sabia", "nós": "sabíamos", "eles": "sabiam"},
+    "preterito_mais_que_perfeito": {"eu": "soubera", "tu": "souberas", "ele": "soubera", "nós": "soubéramos", "eles": "souberam"},
+    "futuro_simples_do_indicativo": {"eu": "saberei", "tu": "saberás", "ele": "saberá", "nós": "saberemos", "eles": "saberão"}
+  },
+  "querer": {
+    "infinitive": "querer",
+    "presente_do_indicativo": {"eu": "quero", "tu": "queres", "ele": "quer", "nós": "queremos", "eles": "querem"},
+    "preterito_perfeito": {"eu": "quis", "tu": "quiseste", "ele": "quis", "nós": "quisemos", "eles": "quiseram"},
+    "preterito_imperfeito": {"eu": "queria", "tu": "querias", "ele": "queria", "nós": "queríamos", "eles": "queriam"},
+    "preterito_mais_que_perfeito": {"eu": "quisera", "tu": "quiseras", "ele": "quisera", "nós": "quiséramos", "eles": "quiseram"},
+    "futuro_simples_do_indicativo": {"eu": "quererei", "tu": "quererás", "ele": "quererá", "nós": "quereremos", "eles": "quererão"}
+  }
+}

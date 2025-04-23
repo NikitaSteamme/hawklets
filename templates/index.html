@@ -4,194 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portuguese Verb Conjugation Practice</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            min-height: 100vh;
-        }
-        .header {
-            background-color: white;
-            padding: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .logo {
-            width: 40px;
-            height: 40px;
-        }
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        .auth-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-        .auth-button {
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            text-decoration: none;
-        }
-        .login-button {
-            background-color: transparent;
-            border: 2px solid #4CAF50;
-            color: #4CAF50;
-        }
-        .register-button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-        }
-        .container {
-            display: flex;
-            margin-top: 64px; /* Header height */
-            min-height: calc(100vh - 64px);
-        }
-        .nav-panel {
-            width: 250px;
-            background-color: white;
-            padding: 1rem;
-            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 64px;
-            bottom: 0;
-            left: 0;
-        }
-        .nav-item {
-            display: block;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            text-decoration: none;
-            color: #333;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-        .nav-item:hover {
-            background-color: #f0f0f0;
-        }
-        .nav-item.active {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .main-content {
-            flex: 1;
-            padding: 2rem 4rem;
-            margin-left: 250px; /* Nav panel width */
-        }
-        .score {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        .conjugation-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            table-layout: fixed;
-        }
-        .conjugation-table th, .conjugation-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-            width: 33.33%;
-        }
-        .conjugation-table th {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .conjugation-input {
-            width: 90%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .correct {
-            background-color: #e8f5e9;
-        }
-        .incorrect {
-            background-color: #ffebee;
-        }
-        .special-chars {
-            margin-bottom: 20px;
-        }
-        .special-char-btn {
-            padding: 8px 12px;
-            margin: 4px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: white;
-            cursor: pointer;
-        }
-        .special-char-btn:hover {
-            background-color: #f0f0f0;
-        }
-        .verbs-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .verb-card {
-            background-color: white;
-            padding: 15px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .verb-card:hover {
-            transform: translateY(-2px);
-            background-color: #f0f0f0;
-        }
-        .verb-card.active {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .practice-area {
-            display: none;
-        }
-        .practice-area.active {
-            display: block;
-        }
-        .controls {
-            margin-bottom: 20px;
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-right: 10px;
-        }
-        .btn-reset {
-            background-color: #f44336;
-            color: white;
-        }
-        .btn-reset:hover {
-            background-color: #d32f2f;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        const IRREGULAR_VERBS = {{ irregular_verbs | tojson }};
+        const REGULAR_VERBS = {{ regular_verbs | tojson }};
+    </script>
 </head>
 <body>
     <header class="header">
@@ -207,85 +24,333 @@
     
     <div class="container">
         <nav class="nav-panel">
-            <a href="/" class="nav-item {% if verb_type == 'irregular' %}active{% endif %}">
-                Irregular Verbs
-            </a>
-            <a href="/regular" class="nav-item {% if verb_type == 'regular' %}active{% endif %}">
-                Regular Verbs (-ar, -er, -ir)
-            </a>
-        </nav>
+    <a href="/?verb_type=irregular&tense=presente_do_indicativo" class="nav-item {% if selected_verb_type == 'irregular' and selected_tense == 'presente_do_indicativo' %}active{% endif %}">Irregular: Presente do Indicativo</a>
+    <a href="/?verb_type=irregular&tense=preterito_perfeito" class="nav-item {% if selected_verb_type == 'irregular' and selected_tense == 'preterito_perfeito' %}active{% endif %}">Irregular: Pretérito Perfeito Simples</a>
+    <a href="/?verb_type=irregular&tense=preterito_imperfeito" class="nav-item {% if selected_verb_type == 'irregular' and selected_tense == 'preterito_imperfeito' %}active{% endif %}">Irregular: Pretérito Imperfeito</a>
+    <a href="/?verb_type=irregular&tense=preterito_mais_que_perfeito" class="nav-item {% if selected_verb_type == 'irregular' and selected_tense == 'preterito_mais_que_perfeito' %}active{% endif %}">Irregular: Pretérito Mais-que-perfeito</a>
+    <a href="/?verb_type=irregular&tense=futuro_simples_do_indicativo" class="nav-item {% if selected_verb_type == 'irregular' and selected_tense == 'futuro_simples_do_indicativo' %}active{% endif %}">Irregular: Futuro Simples do Indicativo</a>
+    <a href="/?verb_type=regular&tense=presente_do_indicativo" class="nav-item {% if selected_verb_type == 'regular' and selected_tense == 'presente_do_indicativo' %}active{% endif %}">Regular: Presente do Indicativo</a>
+    <a href="/?verb_type=regular&tense=preterito_perfeito" class="nav-item {% if selected_verb_type == 'regular' and selected_tense == 'preterito_perfeito' %}active{% endif %}">Regular: Pretérito Perfeito Simples</a>
+    <a href="/?verb_type=regular&tense=preterito_imperfeito" class="nav-item {% if selected_verb_type == 'regular' and selected_tense == 'preterito_imperfeito' %}active{% endif %}">Regular: Pretérito Imperfeito</a>
+    <a href="/?verb_type=regular&tense=preterito_mais_que_perfeito" class="nav-item {% if selected_verb_type == 'regular' and selected_tense == 'preterito_mais_que_perfeito' %}active{% endif %}">Regular: Pretérito Mais-que-perfeito</a>
+    <a href="/?verb_type=regular&tense=futuro_simples_do_indicativo" class="nav-item {% if selected_verb_type == 'regular' and selected_tense == 'futuro_simples_do_indicativo' %}active{% endif %}">Regular: Futuro Simples do Indicativo</a>
+</nav>
         
         <div class="main-content">
-            <h1>{% if verb_type == 'regular' %}Regular{% else %}Irregular{% endif %} Portuguese Verbs</h1>
-            <div class="score">Score: <span id="score">0</span></div>
-            
-            <div class="controls">
-                <button class="btn btn-reset" id="resetButton">Reset Game</button>
-            </div>
+            <h1>Portuguese Verb Conjugation Practice</h1>
+<div class="score">Score: <span id="score">0</span></div>
 
-            <div class="special-chars">
-                <button class="special-char-btn">á</button>
-                <button class="special-char-btn">à</button>
-                <button class="special-char-btn">â</button>
-                <button class="special-char-btn">ã</button>
-                <button class="special-char-btn">é</button>
-                <button class="special-char-btn">ê</button>
-                <button class="special-char-btn">í</button>
-                <button class="special-char-btn">ó</button>
-                <button class="special-char-btn">ô</button>
-                <button class="special-char-btn">õ</button>
-                <button class="special-char-btn">ú</button>
-                <button class="special-char-btn">ç</button>
-            </div>
+<div class="controls">
+    <button class="btn btn-reset" id="resetButton">Reset Game</button>
+</div>
 
-            <h2>Select a Verb to Practice</h2>
-            <div class="verbs-list">
-                {% for verb in verbs %}
-                <div class="verb-card" data-verb="{{ verb }}">
-                    {{ verb }}
-                </div>
+<div class="special-chars">
+    <button class="special-char-btn">á</button>
+    <button class="special-char-btn">à</button>
+    <button class="special-char-btn">â</button>
+    <button class="special-char-btn">ã</button>
+    <button class="special-char-btn">é</button>
+    <button class="special-char-btn">ê</button>
+    <button class="special-char-btn">í</button>
+    <button class="special-char-btn">ó</button>
+    <button class="special-char-btn">ô</button>
+    <button class="special-char-btn">õ</button>
+    <button class="special-char-btn">ú</button>
+    <button class="special-char-btn">ç</button>
+</div>
+
+{% set tense_names = {
+    'presente_do_indicativo': 'Presente do Indicativo',
+    'preterito_perfeito': 'Pretérito Perfeito Simples',
+    'preterito_imperfeito': 'Pretérito Imperfeito',
+    'preterito_mais_que_perfeito': 'Pretérito Mais-que-perfeito do Indicativo',
+    'futuro_simples_do_indicativo': 'Futuro Simples do Indicativo'
+} %}
+
+{% if selected_verb_type == 'irregular' %}
+    <h2>Irregular Verbs: {{ tense_names[selected_tense] }}</h2>
+    <table class="conjugation-table" id="irregular-table">
+        <thead>
+            <tr>
+                <th>Person</th>
+            </tr>
+        </thead>
+        <tbody id="irregular-table-body">
+        </tbody>
+    </table>
+    <script>
+    // --- Механика динамического отображения только 5 незаполненных глаголов ---
+    console.log('IRREGULAR_VERBS:', IRREGULAR_VERBS); // Диагностика: убедитесь, что объект не пустой
+    const CURRENT_TENSE = "{{ selected_tense }}";
+    const PERSONS = ['eu', 'tu', 'ele', 'nós', 'eles'];
+    const MAX_VISIBLE = 5;
+
+    // Получить список полностью заполненных глаголов
+    function getCompletedVerbs(tense) {
+        try {
+            return JSON.parse(localStorage.getItem('conj_progress_' + tense)) || [];
+        } catch { return []; }
+    }
+    // Пометить глагол как полностью заполненный
+    function markVerbCompleted(verb, tense) {
+        let completed = getCompletedVerbs(tense);
+        if (!completed.includes(verb)) {
+            completed.push(verb);
+            localStorage.setItem('conj_progress_' + tense, JSON.stringify(completed));
+        }
+    }
+    // Получить список глаголов для отображения (5 незаполненных, если есть)
+    function getVisibleVerbs(allVerbs, tense) {
+        const completed = getCompletedVerbs(tense);
+        return allVerbs.filter(v => !completed.includes(v)).slice(0, MAX_VISIBLE);
+    }
+    // Проверить, заполнена ли колонка (все поля правильные)
+    function isColumnCompleted(verb) {
+        for (const person of PERSONS) {
+            const input = document.querySelector(`.conjugation-input[data-verb='${verb}'][data-person='${person}']`);
+            if (!input || !input.classList.contains('correct')) return false;
+        }
+        return true;
+    }
+    // Перерисовать таблицу
+    function renderIrregularTable(focusInfo=null) {
+        const allVerbs = Object.keys(IRREGULAR_VERBS);
+        const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
+        // Заголовки
+        let thead = document.querySelector('#irregular-table thead tr');
+        thead.innerHTML = '<th>Person</th>' + visibleVerbs.map(v => `<th>${v}</th>`).join('');
+        // Тело
+        let tbody = document.getElementById('irregular-table-body');
+        tbody.innerHTML = '';
+        for (const person of PERSONS) {
+            let row = `<tr><td>${person}</td>`;
+            for (const verb of visibleVerbs) {
+                const answer = IRREGULAR_VERBS[verb][CURRENT_TENSE]?.[person] || '';
+                row += `<td><input type="text" class="conjugation-input" data-verb="${verb}" data-tense="${CURRENT_TENSE}" data-person="${person}" data-answer="${answer}"></td>`;
+            }
+            row += '</tr>';
+            tbody.innerHTML += row;
+        }
+        attachInputHandlers();
+        attachDblClickToAllInputs(); // Явно навесить двойной клик после перерисовки
+        if (focusInfo) {
+            // После скрытия колонки: переносим фокус на нужный input
+            const { nextVerb, person } = focusInfo;
+            if (nextVerb && person) {
+                const nextInput = document.querySelector(`.conjugation-input[data-verb='${nextVerb}'][data-person='${person}']`);
+                if (nextInput) {
+                    nextInput.focus();
+                    lastFocusedInput = nextInput;
+                }
+            }
+        }
+    }
+    // Обработчики для input
+    function attachDblClickToAllInputs() {
+        document.querySelectorAll('.conjugation-input').forEach(input => {
+        if (input._dblClickHandler) {
+            input.removeEventListener('dblclick', input._dblClickHandler);
+        }
+        const handler = function() {
+            if (!input.dataset.answer) {
+                // Кастомный popup
+                let popup = document.createElement('div');
+                popup.textContent = 'Нет данных для этой формы!';
+                popup.style.position = 'fixed';
+                popup.style.top = '40%';
+                popup.style.left = '50%';
+                popup.style.transform = 'translate(-50%, -50%)';
+                popup.style.background = '#ffdddd';
+                popup.style.color = '#a00';
+                popup.style.padding = '20px 30px';
+                popup.style.borderRadius = '8px';
+                popup.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+                popup.style.zIndex = 10000;
+                document.body.appendChild(popup);
+                setTimeout(() => popup.remove(), 1800);
+                return;
+            }
+            input.value = input.dataset.answer;
+            input.classList.add('show-answer');
+            setTimeout(() => input.classList.remove('show-answer'), 1200);
+        };
+        input.addEventListener('dblclick', handler);
+        input._dblClickHandler = handler;
+        input.dataset.dblclickBound = '1';
+        console.log('dblclick attached', input.dataset.verb, input.dataset.tense, input.dataset.person);
+    });
+        document.querySelectorAll('.conjugation-input').forEach(input => {
+            if (!input.dataset.dblclickBound) {
+                input.addEventListener('dblclick', function() {
+                    input.value = input.dataset.answer;
+                    input.classList.add('show-answer');
+                    setTimeout(() => input.classList.remove('show-answer'), 1200);
+                });
+                input.dataset.dblclickBound = '1';
+            }
+        });
+    }
+    
+    function attachInputHandlers() {
+        document.querySelectorAll('.conjugation-input').forEach(input => {
+            input.addEventListener('focus', () => {
+                lastFocusedInput = input;
+            });
+            input.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    const response = await fetch('/check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            verb: input.dataset.verb,
+                            tense: input.dataset.tense,
+                            person: input.dataset.person,
+                            answer: input.value
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.correct) {
+                        input.classList.add('correct');
+                        input.classList.remove('incorrect');
+                        // --- Автофокус на следующую ячейку (person) в этом столбце (verb) ---
+                        const persons = PERSONS;
+                        const curPersonIdx = persons.indexOf(input.dataset.person);
+                        const verb = input.dataset.verb;
+                        let nextInput = null;
+                        if (curPersonIdx !== -1 && curPersonIdx < persons.length - 1) {
+                            // Следующая строка (person) в этом же столбце
+                            nextInput = document.querySelector(`.conjugation-input[data-verb='${verb}'][data-person='${persons[curPersonIdx+1]}']`);
+                        } else {
+                            // Первая строка следующей незаполненной колонки
+                            const allVerbs = Object.keys(IRREGULAR_VERBS);
+                            const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
+                            const idx = visibleVerbs.indexOf(verb);
+                            let nextVerb = null;
+                            if (idx !== -1 && idx < visibleVerbs.length - 1) {
+                                nextVerb = visibleVerbs[idx + 1];
+                            }
+                            if (nextVerb) {
+                                nextInput = document.querySelector(`.conjugation-input[data-verb='${nextVerb}'][data-person='eu']`);
+                            }
+                        }
+                        if (nextInput) {
+                            setTimeout(() => { nextInput.focus(); lastFocusedInput = nextInput; }, 100);
+                        }
+                    } else {
+                        input.classList.add('incorrect');
+                        input.classList.remove('correct');
+                    }
+                    // После проверки — если вся колонка заполнена, скрыть её и показать новую
+                    const verb = input.dataset.verb;
+                    if (isColumnCompleted(verb)) {
+                        markVerbCompleted(verb, CURRENT_TENSE);
+                        // Найти следующую колонку (глагол) до скрытия
+                        const allVerbs = Object.keys(IRREGULAR_VERBS);
+                        const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
+                        const idx = visibleVerbs.indexOf(verb);
+                        let focusVerb = null;
+                        if (idx !== -1 && idx < visibleVerbs.length - 1) {
+                            // Следующая после скрытой
+                            focusVerb = visibleVerbs[idx + 1];
+                        } else if (visibleVerbs.length > 1) {
+                            // Если скрытая была последней — фокус на первую видимую
+                            focusVerb = visibleVerbs[0] === verb ? visibleVerbs[1] : visibleVerbs[0];
+                        }
+                        const focusInfo = focusVerb ? { nextVerb: focusVerb, person: 'eu' } : null;
+                        setTimeout(() => renderIrregularTable(focusInfo), 300);
+                        return;
+                    }
+                }
+            });
+        });
+        attachDblClickToAllInputs();
+}
+// Экранная клавиатура — работает с динамическими инпутами
+    document.querySelectorAll('.special-char-btn').forEach(button => {
+        button.onclick = (event) => {
+                let targetInput = lastFocusedInput;
+                if (!targetInput || !targetInput.classList.contains('conjugation-input')) {
+                    targetInput = document.querySelector('.conjugation-input');
+                    if (targetInput) {
+                        lastFocusedInput = targetInput;
+                    } else {
+                        return;
+                    }
+                }
+                let currentText = targetInput.value || '';
+                let newText = currentText + button.textContent;
+                targetInput.value = newText;
+                targetInput.focus();
+                event.preventDefault();
+            };
+        });
+    
+    // Первичная отрисовка
+    renderIrregularTable(); // Важно: должен быть вне всех функций!
+    </script>
+{% elif selected_verb_type == 'regular' %}
+    <h2>Regular Verbs: {{ tense_names[selected_tense] }}</h2>
+    <table class="conjugation-table">
+        <thead>
+            <tr>
+                <th>Person</th>
+                {% for verb in regular_verbs.keys() %}
+                <th>{{ verb }}</th>
                 {% endfor %}
-            </div>
-
-            {% for verb in verbs %}
-            <div class="practice-area" id="practice-{{ verb }}">
-                <h3>Practicing: {{ verb }}</h3>
-                <table class="conjugation-table">
-                    <thead>
-                        <tr>
-                            <th>Person</th>
-                            <th>Presente</th>
-                            <th>Pretérito Perfeito Simples</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for person in ['eu', 'tu', 'ele', 'nós', 'eles'] %}
-                        <tr>
-                            <td>{{ person }}</td>
-                            <td>
-                                <input type="text" 
-                                       class="conjugation-input"
-                                       data-verb="{{ verb }}"
-                                       data-tense="presente"
-                                       data-person="{{ person }}"
-                                       data-answer="{{ verbs[verb]['presente'][person] }}">
-                            </td>
-                            <td>
-                                <input type="text"
-                                       class="conjugation-input"
-                                       data-verb="{{ verb }}"
-                                       data-tense="preterito_perfeito"
-                                       data-person="{{ person }}"
-                                       data-answer="{{ verbs[verb]['preterito_perfeito'][person] }}">
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            </tr>
+        </thead>
+        <tbody>
+            {% for person in ['eu', 'tu', 'ele', 'nós', 'eles'] %}
+            <tr>
+                <td>{{ person }}</td>
+                {% for verb in regular_verbs.keys() %}
+                <td>
+                    <input type="text"
+                           class="conjugation-input"
+                           data-verb="{{ verb }}"
+                           data-tense="{{ selected_tense }}"
+                           data-person="{{ person }}"
+                           data-answer="{{ regular_verbs[verb].get(selected_tense, {}).get(person, '') }}">
+                </td>
+                {% endfor %}
+            </tr>
             {% endfor %}
+        </tbody>
+    </table>
+
+{% endif %}
+
         </div>
     </div>
+
+    <script>
+    // Глобальная переменная для фокуса
+    var lastFocusedInput = null;
+    // Универсальный обработчик двойного клика для всех conjugation-input
+    function attachDblClickToAllInputs() {      
+        document.querySelectorAll('.conjugation-input').forEach(input => {
+                if (input._dblClickHandler) {
+                input.removeEventListener('dblclick', input._dblClickHandler);
+            }
+            const handler = function() {
+                input.value = input.dataset.answer;
+                input.classList.add('show-answer');
+                setTimeout(() => input.classList.remove('show-answer'), 1200);
+            };
+            input.addEventListener('dblclick', handler);
+            input._dblClickHandler = handler;
+            input.dataset.dblclickBound = '1';
+            console.log('dblclick attached', input.dataset.verb, input.dataset.tense, input.dataset.person);
+        });
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+        attachDblClickToAllInputs();
+        // Для regular-глаголов: если таблица есть на странице, навесить обработчик
+        if (document.querySelector('.conjugation-table')) {
+            attachDblClickToAllInputs();
+        }
+    });
+    </script>
 
     <script>
         let score = 0;
@@ -293,7 +358,7 @@
         const resetButton = document.getElementById('resetButton');
         const verbCards = document.querySelectorAll('.verb-card');
         const practiceAreas = document.querySelectorAll('.practice-area');
-        let lastFocusedInput = null; // Keep track of last focused input
+        
 
         // Track focus on inputs
         document.querySelectorAll('.conjugation-input').forEach(input => {
@@ -310,13 +375,18 @@
                 input.value = '';
                 input.classList.remove('correct', 'incorrect');
             });
+            // Сбросить прогресс для текущего времени
+            localStorage.removeItem('conj_progress_' + CURRENT_TENSE);
+            // Перерисовать таблицу, если мы в irregular секции
+            if (typeof renderIrregularTable === 'function') {
+                renderIrregularTable();
+            }
         });
 
         // Verb selection
         verbCards.forEach(card => {
             card.addEventListener('click', () => {
-                const verb = card.dataset.verb;
-                
+
                 // Update active states
                 verbCards.forEach(c => c.classList.remove('active'));
                 card.classList.add('active');
@@ -337,34 +407,31 @@
         });
 
         // Special character buttons
-        document.querySelectorAll('.special-char-btn').forEach(button => {
-            button.addEventListener('click', (event) => {
-                let targetInput = lastFocusedInput;
-                
-                // If no input was focused before, use the first input of active practice area
-                if (!targetInput || !targetInput.classList.contains('conjugation-input')) {
-                    targetInput = document.querySelector('.practice-area.active .conjugation-input');
-                    if (targetInput) {
-                        lastFocusedInput = targetInput;
-                    } else {
-                        return;
-                    }
-                }
-
-                // Get the current value and append the new character
-                let currentText = targetInput.value || '';
-                let newText = currentText + button.textContent;
-                
-                // Set the new value
-                targetInput.value = newText;
-                
-                // Keep the input focused
-                targetInput.focus();
-                
-                // Prevent any default behavior
-                event.preventDefault();
-            });
-        });
+        // Сначала удалим все предыдущие обработчики (через свойство)
+document.querySelectorAll('.special-char-btn').forEach(button => {
+    if (button._specialCharHandler) {
+        button.removeEventListener('click', button._specialCharHandler);
+    }
+    const handler = (event) => {
+        let targetInput = lastFocusedInput;
+        // If no input was focused before, use the first input of active practice area
+        if (!targetInput || !targetInput.classList.contains('conjugation-input')) {
+            targetInput = document.querySelector('.practice-area.active .conjugation-input') || document.querySelector('.conjugation-input');
+            if (targetInput) {
+                lastFocusedInput = targetInput;
+            } else {
+                return;
+            }
+        }
+        let currentText = targetInput.value || '';
+        let newText = currentText + button.textContent;
+        targetInput.value = newText;
+        targetInput.focus();
+        event.preventDefault();
+    };
+    button.addEventListener('click', handler);
+    button._specialCharHandler = handler;
+});
 
         // Handle conjugation inputs
         document.querySelectorAll('.conjugation-input').forEach(input => {
@@ -395,6 +462,38 @@
                         score -= 5;
                     }
                     scoreElement.textContent = score;
+
+                    // --- Перемещение фокуса вниз или на следующий столбец ---
+const persons = ['eu', 'tu', 'ele', 'nós', 'eles'];
+const currentPerson = input.dataset.person;
+const currentVerb = input.dataset.verb;
+const currentTense = input.dataset.tense;
+const currentIndex = persons.indexOf(currentPerson);
+const allVerbs = Array.from(new Set(Array.from(document.querySelectorAll(`.conjugation-input[data-tense='${currentTense}']`)).map(i => i.dataset.verb)));
+const verbIndex = allVerbs.indexOf(currentVerb);
+
+if (currentIndex !== -1 && currentIndex < persons.length - 1) {
+    // Есть следующая строка (person) в этом столбце (verb)
+    const nextPerson = persons[currentIndex + 1];
+    const selector = `.conjugation-input[data-verb='${currentVerb}'][data-tense='${currentTense}'][data-person='${nextPerson}']`;
+    const nextInput = document.querySelector(selector);
+    if (nextInput) {
+        nextInput.focus();
+        return;
+    }
+}
+// Если дошли до сюда — либо последняя строка, либо что-то не нашли
+if (verbIndex !== -1 && verbIndex < allVerbs.length - 1) {
+    // Есть следующий столбец (verb)
+    const nextVerb = allVerbs[verbIndex + 1];
+    const selector = `.conjugation-input[data-verb='${nextVerb}'][data-tense='${currentTense}'][data-person='eu']`;
+    const nextInput = document.querySelector(selector);
+    if (nextInput) {
+        nextInput.focus();
+        return;
+    }
+}
+// Если это последняя ячейка — ничего не делаем
                 }
             });
 
