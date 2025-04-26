@@ -22,7 +22,7 @@ except ImportError:
     pass
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Change this in production!
+app.secret_key = os.getenv('SECRET_KEY')
 
 # Flask-Mail configuration from environment variables
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
@@ -194,9 +194,8 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        print("LOGIN ATTEMPT:", repr(email), repr(password))  # DEBUG
+        # Removed debug prints for production
         user = find_user_by_email(email)
-        print("FOUND USER:", user)  # DEBUG
         if user and check_password_hash(user['password'], password):
             if not user.get('confirmed', False):
                 flash('Email ou senha incorretos. Se acabou de se registar, confirme a sua conta pelo link enviado para o seu e-mail.', 'danger')
@@ -355,5 +354,8 @@ def check_conjugation():
         'correct': answer.lower().strip() == correct_answer.lower()
     })
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# Production deployment: use a WSGI server like gunicorn
+# Example: gunicorn -b 0.0.0.0:5000 app:app
+# Do NOT use Flask's built-in server in production!
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', port=5000, debug=False)
