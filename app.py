@@ -5,6 +5,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Mail, Message
 import uuid
 from datetime import datetime, timedelta
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+
+# MongoDB connection
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/verbsdb')
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client.get_default_database()
+users_collection = db['users']
 
 # Load .env if present
 try:
@@ -16,7 +24,15 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Change this in production!
 
-USERS_FILE = 'users.json'
+# Flask-Mail configuration from environment variables
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 25))
+app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False') == 'True'
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'False') == 'True'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+
+mail = Mail(app)
 
 with open('irregular_verbs.json', encoding='utf-8') as f:
     IRREGULAR_VERBS = json.load(f)
@@ -24,33 +40,25 @@ with open('regular_verbs.json', encoding='utf-8') as f:
     REGULAR_VERBS = json.load(f)
 
 def load_users():
-    if not os.path.exists(USERS_FILE):
-        return []
-    with open(USERS_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return list(users_collection.find({}, {'_id': 0}))
 
 def save_users(users):
-    with open(USERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(users, f, ensure_ascii=False, indent=2)
+    # Не используется с MongoDB
+    pass
 
 def find_user_by_username(username):
-    users = load_users()
-    for user in users:
-        if user['username'] == username:
-            return user
-    return None
+    user = users_collection.find_one({'username': username}, {'_id': 0})
+    return user
 
 def find_user_by_email(email):
-    users = load_users()
-    for user in users:
-        if user['email'] == email:
-            return user
-    return None
+    user = users_collection.find_one({'email': email}, {'_id': 0})
+    return user
 
 def add_user(user_dict):
-    users = load_users()
-    users.append(user_dict)
-    save_users(users)
+    users_collection.insert_one(user_dict)
+
+def update_user(user):
+    users_collection.update_one({'id': user['id']}, {'$set': user})
 
 @app.route('/')
 def landing():
@@ -348,4 +356,4 @@ def check_conjugation():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
