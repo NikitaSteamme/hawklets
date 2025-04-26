@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: portuguese-verbs-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"  # Замените на нужный порт, если другой
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/verbsdb
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+    depends_on:
+      - mongo
+      - mailhog
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # Веб-интерфейс
+      - "1025:1025"  # SMTP
+
+volumes:
+  mongo-data:

@@ -55,37 +55,63 @@
                     {{ text }}
                 </a>
             {% endfor %}
+            {% if user and user.role == 'admin' %}
+                <a href="/practice?section=admin" class="nav-item {% if selected_section == 'admin' %}active{% endif %}">Utilizadores</a>
+            {% endif %}
         </nav>
         <div class="main-content">
-            <h1>Prática de Conjugação de Verbos Portugueses</h1>
-            <div class="controls">
-                <button class="btn btn-reset" id="resetButton">Reiniciar</button>
-            </div>
-            <div class="special-chars">
-                {% for char in ['á', 'à', 'â', 'ã', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç'] %}
-                    <button class="special-char-btn">{{ char }}</button>
-                {% endfor %}
-            </div>
-            {% set tense_names = {
-                'presente_do_indicativo': 'Presente do Indicativo',
-                'preterito_perfeito': 'Pretérito Perfeito Simples',
-                'preterito_imperfeito': 'Pretérito Imperfeito',
-                'preterito_mais_que_perfeito': 'Pretérito Mais-que-perfeito do Indicativo',
-                'futuro_simples_do_indicativo': 'Futuro Simples do Indicativo'
-            } %}
-            {% if selected_verb_type in ['irregular', 'regular'] %}
-                <h2>{{ 'Irregulares' if selected_verb_type == 'irregular' else 'Regulares' }}: {{ tense_names[selected_tense] }}</h2>
-                <table class="conjugation-table" id="{{ selected_verb_type }}-table">
+            {% if user and user.role == 'admin' and selected_section == 'admin' and all_users %}
+                <h2 style="margin-bottom: 24px;">Gestão de Utilizadores</h2>
+                <table class="conjugation-table">
                     <thead>
                         <tr>
-                            <th>Pessoa</th>
+                            <th>E-mail</th>
+                            <th>Papel</th>
+                            <th>Status</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="{{ selected_verb_type }}-table-body"></tbody>
+                    <tbody>
+                    {% for u in all_users %}
+                        <tr>
+                            <td>{{ u.email }}</td>
+                            <td>{{ u.role }}</td>
+                            <td>{% if u.confirmed %}Confirmado{% else %}Não confirmado{% endif %}</td>
+                            <td><!-- Действия для админа --></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
                 </table>
+            {% else %}
+                <h1>Prática de Conjugação de Verbos Portugueses</h1>
+                <div class="controls">
+                    <button class="btn btn-reset" id="resetButton">Reiniciar</button>
+                </div>
+                <div class="special-chars">
+                    {% for char in ['á', 'à', 'â', 'ã', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç'] %}
+                        <button class="special-char-btn">{{ char }}</button>
+                    {% endfor %}
+                </div>
+                {% set tense_names = {
+                    'presente_do_indicativo': 'Presente do Indicativo',
+                    'preterito_perfeito': 'Pretérito Perfeito Simples',
+                    'preterito_imperfeito': 'Pretérito Imperfeito',
+                    'preterito_mais_que_perfeito': 'Pretérito Mais-que-perfeito do Indicativo',
+                    'futuro_simples_do_indicativo': 'Futuro Simples do Indicativo'
+                } %}
+                {% if selected_verb_type in ['irregular', 'regular'] %}
+                    <h2>{{ 'Irregulares' if selected_verb_type == 'irregular' else 'Regulares' }}: {{ tense_names[selected_tense] }}</h2>
+                    <table class="conjugation-table" id="{{ selected_verb_type }}-table">
+                        <thead>
+                            <tr>
+                                <th>Pessoa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="{{ selected_verb_type }}-table-body"></tbody>
+                    </table>
+                {% endif %}
             {% endif %}
         </div>
-    </div>
     <script>
     (function() {
         'use strict';

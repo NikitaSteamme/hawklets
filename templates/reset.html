@@ -2,23 +2,69 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Redefinir Senha</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Recuperar Palavra-passe</title>
 </head>
 <body>
-    <h1>Redefinir Senha</h1>
-    <form method="post">
-        <label>Email:<br><input type="email" name="email" required></label><br>
-        <button type="submit">Redefinir senha</button>
-    </form>
-    <p><a href="/login">Voltar ao login</a></p>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-        {% for category, message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    <header class="header">
+        <div class="logo-container">
+            <img src="/static/logo.svg" alt="Logo" class="logo">
+            <span class="logo-text">Verb Master</span>
+        </div>
+        <div class="auth-buttons">
+            <a href="/login" class="auth-button login-button">Iniciar Sessão</a>
+            <a href="/register" class="auth-button register-button">Registar</a>
+        </div>
+    </header>
+    <div class="container" style="justify-content:center;align-items:center;">
+    <div class="auth-form-container">
+        <h1>Recuperar Palavra-passe</h1>
+        <form method="post" class="auth-form">
+            <div class="material-input">
+                <input type="email" id="email" name="email" required placeholder=" " autocomplete="username">
+                <label for="email">E-mail</label>
+            </div>
+            <button type="submit" class="btn">Recuperar Palavra-passe</button>
+        </form>
+        <div class="auth-links">
+    <a href="/login">Iniciar Sessão</a>
+</div>
+<div id="after-reset-extra" style="display:none;margin-top:16px;text-align:center;"></div>
+<script>
+// Show extra UI after reset request
+function showAfterResetUI(sentAt, canResend) {
+  const container = document.getElementById('after-reset-extra');
+  container.style.display = 'block';
+  container.innerHTML = `<a href="#" id="not-received-link">Если письмо не пришло, нажмите сюда</a>`;
+  document.getElementById('not-received-link').onclick = function(e) {
+    e.preventDefault();
+    let now = Date.now();
+    let sent = sentAt ? new Date(sentAt).getTime() : 0;
+    let diff = Math.floor((now - sent)/1000);
+    if (diff < 30) {
+      container.innerHTML = `<div>Проверьте папки Спам и Промо. <br>Повторно отправить письмо можно через <span id='timer'>${30-diff}</span> сек.</div>`;
+      let timer = setInterval(() => {
+        let t = parseInt(document.getElementById('timer').innerText)-1;
+        document.getElementById('timer').innerText = t;
+        if (t <= 0) { clearInterval(timer); location.reload(); }
+      }, 1000);
+    } else {
+      container.innerHTML = `<div>Проверьте папки Спам и Промо.<br><form method='post' action='/resend_reset'><input type='hidden' name='email' value='${window.lastResetEmail||''}'><button type='submit' class='btn btn-secondary'>Отправить повторно</button></form></div>`;
+    }
+  };
+}
+window.showAfterResetUI = showAfterResetUI;
+</script>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul style="margin-top:12px;">
+            {% for category, message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </div>
+</div>
 </body>
 </html>

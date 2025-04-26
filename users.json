@@ -4,6 +4,52 @@
     "username": "demo",
     "email": "demo@example.com",
     "password": "scrypt:32768:8:1$Yee4N274QRZ3t7QW$0e0fdbb29c7166c52e42314322a3a7a6e08fe64e476b0a1fcf7136a373c6d5757bbf61a30bc2763496baf1d48076866bd2b475bc251aa6c8900230beb9ad079a",
-    "progress": {}
+    "progress": {},
+    "confirmed": true,
+    "role": "student"
+  },
+  {
+    "id": 2,
+    "username": "nikita",
+    "email": "nikita@gmail.com",
+    "password": "scrypt:32768:8:1$yUjfF5Kupr930ACc$cbe5084a5205612525d8a74283dd7a1472f95b3ba9cc21b0632f12eb03e486a78cfa6b79d32300e2678643d309a4a1cdd268ed5752d69fa830df95dae3c6c816",
+    "progress": {},
+    "confirmed": true,
+    "role": "student"
+  },
+  {
+    "id": 3,
+    "username": "admin",
+    "email": "admin@admin.com",
+    "password": "scrypt:32768:8:1$xtA6gcZ2t0uMrmXb$afdbc36da6c9ba348291a12efa9d7a4b10c258f74da2f81b58618636f180ee0114425b8ac2999adab82cc6322065302b13d31d59bf10dd2b4def2117d08006d9",
+    "progress": {},
+    "confirmed": true,
+    "role": "admin",
+    "email_send_log": [
+      "2025-04-26T13:47:06.403900",
+      "2025-04-26T13:52:29.970063"
+    ],
+    "reset_token": "",
+    "reset_sent_at": ""
+  },
+  {
+    "id": 4,
+    "email": "nikita258963@gmail.com",
+    "password": "scrypt:32768:8:1$kcY7TwXxtlNqtt3x$39c85c88dc66684085288512d143cd009e7815642dad77a1514189907688420ad251bbabea49fa232887a760de08fd5cf0367ffda5b6c174c6454025ba2d505b",
+    "progress": {},
+    "confirmed": false,
+    "confirmation_token": "afd51be7-89d9-4565-aff7-b1a5a83511dd",
+    "confirmation_sent_at": "2025-04-25T21:40:09.355177",
+    "role": "student"
+  },
+  {
+    "id": 5,
+    "email": "meshn@outlook.com",
+    "password": "scrypt:32768:8:1$psoZdMbkRZtW1Wab$909157e64accc0da91d84535cd1195a48c31c75b469f44bf975612c4f261bd43bd96fd029f02845da84cbe78ee7db30bdbf95eba7f8340e3bb7eb737056da7a4",
+    "progress": {},
+    "confirmed": true,
+    "confirmation_token": "",
+    "confirmation_sent_at": "",
+    "role": "student"
   }
 ]

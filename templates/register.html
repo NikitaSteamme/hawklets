@@ -2,24 +2,47 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Registrar-se</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Registar</title>
 </head>
 <body>
-    <h1>Registrar-se</h1>
-    <form method="post">
-        <label>Email:<br><input type="email" name="email" required></label><br>
-        <label>Senha:<br><input type="password" name="password" required></label><br>
-        <button type="submit">Registrar-se</button>
-    </form>
-    <p><a href="/login">Já tem uma conta? Entrar</a></p>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-        {% for category, message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    <header class="header">
+        <div class="logo-container">
+            <img src="/static/logo.svg" alt="Logo" class="logo">
+            <span class="logo-text">Verb Master</span>
+        </div>
+        <div class="auth-buttons">
+            <a href="/login" class="auth-button login-button">Iniciar Sessão</a>
+            <a href="/register" class="auth-button register-button">Registar</a>
+        </div>
+    </header>
+    <div class="container" style="justify-content:center;align-items:center;">
+    <div class="auth-form-container">
+        <h1>Registar</h1>
+        <form method="post" class="auth-form">
+            <div class="material-input">
+                <input type="email" id="email" name="email" required placeholder=" " autocomplete="username">
+                <label for="email">E-mail</label>
+            </div>
+            <div class="material-input">
+                <input type="password" id="password" name="password" required placeholder=" " autocomplete="new-password">
+                <label for="password">Palavra-passe</label>
+            </div>
+            <button type="submit" class="btn">Registar</button>
+        </form>
+        <div class="auth-links">
+            <a href="/login">Já tem conta? Iniciar Sessão</a>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul style="margin-top:12px;">
+            {% for category, message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </div>
+</div>
 </body>
 </html>
