@@ -31,6 +31,8 @@ app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False') == 'True'
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'False') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+print("MAIL_USE_SSL:", os.getenv("MAIL_USE_SSL"))
+print("MAIL_USE_TLS:", os.getenv("MAIL_USE_TLS"))
 
 mail = Mail(app)
 
@@ -160,15 +162,6 @@ def send_confirmation_email(email, token):
                   sender=sender)
     msg.body = f'''Bem-vindo ao Verb Master!\n\nPara ativar a sua conta, clique no link abaixo (válido por 72 horas):\n{confirm_url}\n\nSe não foi você quem se registou, ignore este email.'''
     mail.send(msg)
-
-# Flask-Mail configuration (set your SMTP credentials here)
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
-mail = Mail(app)
 
 @app.route('/confirm/<token>')
 def confirm_email(token):

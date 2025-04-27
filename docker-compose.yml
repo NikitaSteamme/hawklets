@@ -9,8 +9,6 @@ services:
       - "5000:5000"  # Замените на нужный порт, если другой
     environment:
       - MONGO_URI=mongodb://mongo:27017/verbsdb
-      - MAIL_HOST=mailhog
-      - MAIL_PORT=1025
     depends_on:
       - mongo
       - mailhog
