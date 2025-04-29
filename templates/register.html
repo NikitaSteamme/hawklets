@@ -20,6 +20,7 @@
     <div class="auth-form-container">
         <h1>Registar</h1>
         <form method="post" class="auth-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="material-input">
                 <input type="email" id="email" name="email" required placeholder=" " autocomplete="username">
                 <label for="email">E-mail</label>

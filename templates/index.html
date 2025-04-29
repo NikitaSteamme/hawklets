@@ -5,19 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prática de Conjugação de Verbos Portugueses</title>
     <link rel="stylesheet" href="/static/style.css">
+
+            margin-bottom: 24px;
+        }
+    </style>
 </head>
 <body>
     <header class="header">
         <div class="logo-container">
-            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM0Q0FGNTAiIHNrtcm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMyAxMWwxOC0xbC0xMCA4TDMgMTF6Ii8+PHBhdGggZD0iTTExIDE4bDQtNiIvPjwvc3ZnPg==" alt="Logo" class="logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM0Q0FGNTAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMyAxMWwxOC0xbC0xMCA4TDMgMTF6Ii8+PHBhdGggZD0iTTExIDE4bDQtNiIvPjwvc3ZnPg==" alt="Logo" class="logo">
             <span class="logo-text">Verb Master</span>
         </div>
         <div class="auth-buttons">
             {% if user %}
                 <div class="user-info">
-                    <span class="user-email">{{ user.email }}</span>
+                    <span class="user-email">{{ user.email|e }}</span>
                     {% if user.avatar_url %}
-                        <img src="{{ user.avatar_url }}" alt="Avatar" class="avatar">
+                        <img src="{{ user.avatar_url|e }}" alt="Avatar" class="avatar">
                     {% else %}
                         <span class="avatar default-avatar">
                             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,27 +65,38 @@
         </nav>
         <div class="main-content">
             {% if user and user.role == 'admin' and selected_section == 'admin' and all_users %}
-                <h2 style="margin-bottom: 24px;">Gestão de Utilizadores</h2>
-                <table class="conjugation-table">
-                    <thead>
-                        <tr>
-                            <th>E-mail</th>
-                            <th>Papel</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for u in all_users %}
-                        <tr>
-                            <td>{{ u.email }}</td>
-                            <td>{{ u.role }}</td>
-                            <td>{% if u.confirmed %}Confirmado{% else %}Não confirmado{% endif %}</td>
-                            <td><!-- Действия для админа --></td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                <div class="users-management">
+                    <h2>Gestão de Utilizadores</h2>
+                    <div class="table-responsive">
+                        <table class="conjugation-table">
+                            <thead>
+                                <tr>
+                                    <th>E-mail</th>
+                                    <th>Papel</th>
+                                    <th>Estado</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for u in all_users %}
+                                <tr>
+                                    <td>{{ u.email|e }}</td>
+                                    <td>{{ u.role|e }}</td>
+                                    <td>{% if u.confirmed %}Confirmado{% else %}Não confirmado{% endif %}</td>
+                                    <td>
+                                        <form action="{{ url_for('delete_user', user_id=u._id) }}" method="post" class="delete-user-form" onsubmit="return confirm('Tem a certeza de que deseja eliminar este utilizador?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" title="Eliminar" class="delete-user-btn" aria-label="Eliminar utilizador">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             {% else %}
                 <h1>Prática de Conjugação de Verbos Portugueses</h1>
                 <div class="controls">
@@ -89,9 +104,10 @@
                 </div>
                 <div class="special-chars">
                     {% for char in ['á', 'à', 'â', 'ã', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç'] %}
-                        <button class="special-char-btn">{{ char }}</button>
+                        <button class="special-char-btn" aria-label="Add character {{ char }}">{{ char }}</button>
                     {% endfor %}
                 </div>
+                <!-- Portuguese special character keyboard restored -->
                 {% set tense_names = {
                     'presente_do_indicativo': 'Presente do Indicativo',
                     'preterito_perfeito': 'Pretérito Perfeito Simples',
@@ -112,12 +128,17 @@
                 {% endif %}
             {% endif %}
         </div>
+    </div>
+
+    <!-- Password reset modal removed as it is not used -->
+
     <script>
     (function() {
         'use strict';
         
-        const IRREGULAR_VERBS = {{ irregular_verbs | tojson }};
-        const REGULAR_VERBS = {{ regular_verbs | tojson }};
+        // --- Constants ---
+        const IRREGULAR_VERBS = JSON.parse('{{ irregular_verbs | tojson | e }}');
+        const REGULAR_VERBS = JSON.parse('{{ regular_verbs | tojson | e }}');
         const CURRENT_TENSE = "{{ selected_tense }}";
         const PERSONS = ['eu', 'tu', 'ele', 'nós', 'eles'];
         const MAX_VISIBLE = 5;
@@ -125,10 +146,11 @@
             'irregular': IRREGULAR_VERBS,
             'regular': REGULAR_VERBS
         };
-        
+
+        // --- State ---
         let lastFocusedInput = null;
-        
-        // Utility functions
+
+        // --- Utility Functions ---
         function getCompletedVerbs(tense) {
             try {
                 return JSON.parse(localStorage.getItem('conj_progress_' + tense)) || [];
@@ -157,67 +179,17 @@
             });
         }
         
-        // Table rendering
-        function renderTable(verbType, focusInfo = null) {
-            const verbs = VERB_TYPES[verbType];
-            if (!verbs) return;
-            
-            const allVerbs = Object.keys(verbs);
-            const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
-            
-            // Update table header
-            const thead = document.querySelector(`#${verbType}-table thead tr`);
-            thead.innerHTML = '<th>Pessoa</th>' + visibleVerbs.map(v => `<th>${v}</th>`).join('');
-            
-            // Update table body
-            const tbody = document.getElementById(`${verbType}-table-body`);
-            tbody.innerHTML = PERSONS.map(person => {
-                const cells = visibleVerbs.map(verb => {
-                    const answer = verbs[verb][CURRENT_TENSE]?.[person] || '';
-                    return `<td><input type="text" class="conjugation-input" 
-                            data-verb="${verb}" data-tense="${CURRENT_TENSE}" 
-                            data-person="${person}" data-answer="${answer}"></td>`;
-                }).join('');
-                return `<tr><td>${person}</td>${cells}</tr>`;
-            }).join('');
-            
-            attachInputHandlers();
-            attachDblClickToAllInputs();
-            
-            if (focusInfo && focusInfo.nextVerb && focusInfo.person) {
-                const nextInput = document.querySelector(
-                    `.conjugation-input[data-verb='${focusInfo.nextVerb}'][data-person='${focusInfo.person}']`
-                );
-                if (nextInput) {
-                    nextInput.focus();
-                    lastFocusedInput = nextInput;
-                }
-            }
+        function getAllInfinitives(verbsArr) {
+            if (!Array.isArray(verbsArr)) return [];
+            return verbsArr.map(v => v.infinitive);
         }
         
-        // Event handlers
-        function attachDblClickToAllInputs() {
-            document.querySelectorAll('.conjugation-input').forEach(input => {
-                // Remove existing handler if any
-                if (input._dblClickHandler) {
-                    input.removeEventListener('dblclick', input._dblClickHandler);
-                }
-                
-                const handler = function() {
-                    if (!input.dataset.answer) {
-                        showTemporaryPopup('Não há dados para este campo!');
-                        return;
-                    }
-                    input.value = input.dataset.answer;
-                    input.classList.add('show-answer');
-                    setTimeout(() => input.classList.remove('show-answer'), 1200);
-                };
-                
-                input.addEventListener('dblclick', handler);
-                input._dblClickHandler = handler;
-            });
+        function getVerbByInfinitive(verbsArr, infinitive) {
+            if (!Array.isArray(verbsArr)) return null;
+            return verbsArr.find(v => v.infinitive === infinitive) || null;
         }
-        
+
+        // --- UI Functions ---
         function showTemporaryPopup(message) {
             const popup = document.createElement('div');
             popup.textContent = message;
@@ -236,16 +208,125 @@
             document.body.appendChild(popup);
             setTimeout(() => popup.remove(), 1800);
         }
-        
-        function attachInputHandlers() {
-            document.querySelectorAll('.conjugation-input').forEach(input => {
-                input.addEventListener('focus', () => {
-                    lastFocusedInput = input;
-                });
+
+        // --- Table Rendering ---
+        function renderTable(verbType, focusInfo = null) {
+            const verbs = VERB_TYPES[verbType];
+            if (!verbs) return;
+            // Ensure table exists before rendering
+            const tableElement = document.getElementById(`${verbType}-table`);
+            if (!tableElement) return;
+            
+            const allVerbs = getAllInfinitives(verbs);
+            const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
+            
+            if (visibleVerbs.length === 0) {
+                showTemporaryPopup('Todos os verbos desta seção foram completados!');
+                return;
+            }
+            
+            // Update table header
+            const thead = document.querySelector(`#${verbType}-table thead tr`);
+            thead.innerHTML = '<th>Pessoa</th>' + visibleVerbs.map(v => `<th>${v}</th>`).join('');
+            
+            // Update table body
+            const tbody = document.getElementById(`${verbType}-table-body`);
+            tbody.innerHTML = PERSONS.map(person => {
+                const cells = visibleVerbs.map(verb => {
+                    const verbObj = getVerbByInfinitive(verbs, verb);
+                    const answer = verbObj && verbObj[CURRENT_TENSE] && verbObj[CURRENT_TENSE][person] ? verbObj[CURRENT_TENSE][person] : '';
+                    return `<td><input type="text" class="conjugation-input" 
+                            data-verb="${verb}" data-tense="${CURRENT_TENSE}" 
+                            data-person="${person}" data-answer="${answer}"
+                            aria-label="Conjugar verbo ${verb} para ${person}"></td>`;
+                }).join('');
+                return `<tr><td>${person}</td>${cells}</tr>`;
+            }).join('');
+            
+            attachEventHandlers();
+            
+            if (focusInfo && focusInfo.nextVerb && focusInfo.person) {
+                const nextInput = document.querySelector(
+                    `.conjugation-input[data-verb='${focusInfo.nextVerb}'][data-person='${focusInfo.person}']`
+                );
+                if (nextInput) {
+                    nextInput.focus();
+                    lastFocusedInput = nextInput;
+                }
+            }
+        }
+
+        // --- Event Handling ---
+        function handleCorrectAnswer(input) {
+            const verb = input.dataset.verb;
+            const person = input.dataset.person;
+            const verbType = '{{ selected_verb_type }}';
+
+            // If the whole column is completed, mark as completed and re-render
+            if (isColumnCompleted(verb)) {
+                markVerbCompleted(verb, CURRENT_TENSE);
+                renderTable(verbType);
+                return; // Table re-rendered, do not proceed
+            }
+
+            const currentPersonIdx = PERSONS.indexOf(person);
+            let nextInput = null;
+
+            if (currentPersonIdx < PERSONS.length - 1) {
+                // Next person for same verb
+                nextInput = document.querySelector(
+                    `.conjugation-input[data-verb='${verb}'][data-person='${PERSONS[currentPersonIdx + 1]}']`
+                );
+            } else {
+                // First person of next verb
+                const allVerbs = getAllInfinitives(VERB_TYPES[verbType]);
+                const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
+                const currentVerbIdx = visibleVerbs.indexOf(verb);
+                let focusVerb = null;
+                if (currentVerbIdx < visibleVerbs.length - 1) {
+                    focusVerb = visibleVerbs[currentVerbIdx + 1];
+                } else {
+                    focusVerb = visibleVerbs[0];
+                }
+                nextInput = document.querySelector(
+                    `.conjugation-input[data-verb='${focusVerb}'][data-person='${PERSONS[0]}']`
+                );
+            }
+
+            if (nextInput) {
+                nextInput.focus();
+                lastFocusedInput = nextInput;
+            }
+        }
+
+        function attachEventHandlers() {
+            // Обработка двойного клика
+            document.addEventListener('dblclick', (e) => {
+                if (e.target.classList.contains('conjugation-input')) {
+                    const input = e.target;
+                    if (!input.dataset.answer) {
+                        showTemporaryPopup('Não há dados para este campo!');
+                        return;
+                    }
+                    input.value = input.dataset.answer;
+                    input.classList.add('show-answer');
+                    setTimeout(() => input.classList.remove('show-answer'), 1200);
+                }
+            });
+            
+            // Обработка фокуса
+            document.addEventListener('focusin', (e) => {
+                if (e.target.classList.contains('conjugation-input')) {
+                    lastFocusedInput = e.target;
+                }
+            });
+            
+            // Обработка нажатия Enter
+            document.addEventListener('keypress', async (e) => {
+                if (e.key !== 'Enter' || !e.target.classList.contains('conjugation-input')) return;
                 
-                input.addEventListener('keypress', async (e) => {
-                    if (e.key !== 'Enter') return;
-                    
+                const input = e.target;
+                try {
                     const response = await fetch('/check', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -257,112 +338,76 @@
                         })
                     });
                     
-                    const result = await response.json();
-                    input.classList.toggle('correct', result.correct);
-                    input.classList.toggle('incorrect', !result.correct);
+                    const data = await response.json();
+                    if (!response.ok || !data.correct) {
+                        showTemporaryPopup(data.message || 'Resposta incorreta');
+                        // Do not log to console for normal user mistakes
+                        return;
+                    }
                     
-                    if (result.correct) {
+                    input.classList.toggle('correct', data.correct);
+                    input.classList.toggle('incorrect', !data.correct);
+                    
+                    if (data.correct) {
                         handleCorrectAnswer(input);
                     }
-                });
+                } catch (err) {
+                    showTemporaryPopup(err.message || 'Erro de rede ou resposta incorreta');
+                    // Only log real technical errors (not user mistakes)
+                    if (!(err.message && (err.message.includes('incorreta') || err.message.includes('Resposta')))) {
+                        console.error(err);
+                    }
+                }
             });
         }
-        
-        function handleCorrectAnswer(input) {
-            // Focus next cell
-            const verb = input.dataset.verb;
-            const person = input.dataset.person;
-            const verbType = '{{ selected_verb_type }}';
-            
-            const currentPersonIdx = PERSONS.indexOf(person);
-            let nextInput = null;
-            
-            if (currentPersonIdx < PERSONS.length - 1) {
-                // Next person for same verb
-                nextInput = document.querySelector(
-                    `.conjugation-input[data-verb='${verb}'][data-person='${PERSONS[currentPersonIdx + 1]}']`
-                );
-            } else {
-                // First person of next verb
-                const allVerbs = Object.keys(VERB_TYPES[verbType]);
-                const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
-                const currentVerbIdx = visibleVerbs.indexOf(verb);
-                
-                if (currentVerbIdx < visibleVerbs.length - 1) {
-                    nextInput = document.querySelector(
-                        `.conjugation-input[data-verb='${visibleVerbs[currentVerbIdx + 1]}'][data-person='eu']`
-                    );
-                }
-            }
-            
-            if (nextInput) {
-                setTimeout(() => {
-                    nextInput.focus();
-                    lastFocusedInput = nextInput;
-                }, 100);
-            }
-            
-            // Check if column completed
-            if (isColumnCompleted(verb)) {
-                markVerbCompleted(verb, CURRENT_TENSE);
-                const allVerbs = Object.keys(VERB_TYPES[verbType]);
-                const visibleVerbs = getVisibleVerbs(allVerbs, CURRENT_TENSE);
-                const currentVerbIdx = visibleVerbs.indexOf(verb);
-                
-                let focusVerb = null;
-                if (currentVerbIdx < visibleVerbs.length - 1) {
-                    focusVerb = visibleVerbs[currentVerbIdx + 1];
-                } else if (visibleVerbs.length > 1) {
-                    focusVerb = visibleVerbs[0] === verb ? visibleVerbs[1] : visibleVerbs[0];
-                }
-                
-                const focusInfo = focusVerb ? { nextVerb: focusVerb, person: 'eu' } : null;
-                setTimeout(() => renderTable(verbType, focusInfo), 300);
-            }
+
+        // Initialize conjugation table
+        const verbType = '{{ selected_verb_type }}';
+        // Only render if table element is present
+        const tableElement = document.getElementById(`${verbType}-table`);
+        if (verbType && VERB_TYPES[verbType] && tableElement) {
+            renderTable(verbType);
         }
         
-        // Special character buttons
-        document.querySelectorAll('.special-char-btn').forEach(button => {
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-                
-                let targetInput = lastFocusedInput;
-                if (!targetInput || !targetInput.classList.contains('conjugation-input')) {
-                    targetInput = document.querySelector('.conjugation-input');
-                    if (!targetInput) return;
-                    lastFocusedInput = targetInput;
-                }
-                
-                targetInput.value += button.textContent;
-                targetInput.focus();
-            });
-        });
-        
-        // Reset button
-        document.getElementById('resetButton')?.addEventListener('click', () => {
-            document.querySelectorAll('.conjugation-input').forEach(input => {
-                input.value = '';
-                input.classList.remove('correct', 'incorrect');
-            });
-            
-            if (CURRENT_TENSE) {
+        // Reset progress and re-render table
+        const resetBtn = document.getElementById('resetButton');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
                 localStorage.removeItem('conj_progress_' + CURRENT_TENSE);
-            }
-            
-            const verbType = '{{ selected_verb_type }}';
-            if (verbType && VERB_TYPES[verbType]) {
                 renderTable(verbType);
+            });
+        }
+    })();
+</script>
+<!-- конец .container -->
+</div>
+<script>
+    // Special Portuguese character keyboard functionality
+    (function() {
+        let lastInput = null;
+        // Track the last focused input
+        document.addEventListener('focusin', function(e) {
+            if (e.target.classList.contains('conjugation-input')) {
+                lastInput = e.target;
             }
         });
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            const verbType = '{{ selected_verb_type }}';
-            if (verbType && VERB_TYPES[verbType]) {
-                renderTable(verbType);
-            }
+        // Insert special character on button click
+        document.querySelectorAll('.special-char-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (lastInput) {
+                    const start = lastInput.selectionStart;
+                    const end = lastInput.selectionEnd;
+                    const char = btn.textContent;
+                    const value = lastInput.value;
+                    lastInput.value = value.slice(0, start) + char + value.slice(end);
+                    lastInput.focus();
+                    lastInput.selectionStart = lastInput.selectionEnd = start + char.length;
+                }
+            });
         });
     })();
-    </script>
+</script>
 </body>
 </html>

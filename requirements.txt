@@ -4,3 +4,5 @@ Flask-Mail==0.9.1
 gunicorn
 pymongo
 dnspython
+Flask-WTF==1.2.1
+WTForms==3.1.1

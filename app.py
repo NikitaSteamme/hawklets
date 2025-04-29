@@ -24,6 +24,10 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 
+# CSRF protection
+from csrf import init_csrf
+init_csrf(app)
+
 # Flask-Mail configuration from environment variables
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 25))
@@ -31,22 +35,24 @@ app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False') == 'True'
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'False') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-print("MAIL_USE_SSL:", os.getenv("MAIL_USE_SSL"))
-print("MAIL_USE_TLS:", os.getenv("MAIL_USE_TLS"))
+
+# Base URL configuration
+base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5000")
 
 mail = Mail(app)
 
-with open('irregular_verbs.json', encoding='utf-8') as f:
-    IRREGULAR_VERBS = json.load(f)
-with open('regular_verbs.json', encoding='utf-8') as f:
-    REGULAR_VERBS = json.load(f)
+# Получаем глаголы из MongoDB
+IRREGULAR_VERBS_LIST = list(db['irregular_verbs'].find({}, {'_id': 0}))
+REGULAR_VERBS_LIST = list(db['regular_verbs'].find({}, {'_id': 0}))
+# Для фронта — массивы
+# Для backend проверки — словари
+IRREGULAR_VERBS_DICT = {v['infinitive']: v for v in IRREGULAR_VERBS_LIST}
+REGULAR_VERBS_DICT = {v['infinitive']: v for v in REGULAR_VERBS_LIST}
+REGULAR_VERBS = list(db['regular_verbs'].find({}, {'_id': 0}))
 
-def load_users():
-    return list(users_collection.find({}, {'_id': 0}))
 
-def save_users(users):
-    # Не используется с MongoDB
-    pass
+
+
 
 def find_user_by_username(username):
     user = users_collection.find_one({'username': username}, {'_id': 0})
@@ -56,7 +62,24 @@ def find_user_by_email(email):
     user = users_collection.find_one({'email': email}, {'_id': 0})
     return user
 
-def add_user(user_dict):
+@app.route('/admin/delete_user/<user_id>', methods=['POST'])
+def delete_user(user_id):
+    # Only allow admins
+    if session.get('role') != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('index', section='admin'))
+    from bson.objectid import ObjectId
+    try:
+        result = users_collection.delete_one({'_id': ObjectId(user_id)})
+        if result.deleted_count > 0:
+            flash('Utilizador eliminado com sucesso.', 'success')
+        else:
+            flash('Não foi possível eliminar o utilizador.', 'danger')
+    except Exception:
+        flash('Erro ao eliminar utilizador.', 'danger')
+    # Always redirect back to admin section
+    return redirect(url_for('index', section='admin'))
+
     users_collection.insert_one(user_dict)
 
 def update_user(user):
@@ -78,14 +101,20 @@ def index():
     selected_section = request.args.get('section', None)
     user = None
     users = []
+    user = None
+    users = []
     if 'user_id' in session:
-        users = load_users()
+        # Include MongoDB _id and custom id for admin user management
+        users = list(users_collection.find({}, {'_id': 1, 'id': 1, 'email': 1, 'role': 1, 'confirmed': 1}))
+        # Convert ObjectId to string for template URLs
+        for u in users:
+            u['_id'] = str(u['_id'])
         user = next((u for u in users if u['id'] == session['user_id']), None)
     # Pass all users to template if admin
     return render_template(
         'index.html',
-        irregular_verbs=IRREGULAR_VERBS,
-        regular_verbs=REGULAR_VERBS,
+        irregular_verbs=IRREGULAR_VERBS_LIST,
+        regular_verbs=REGULAR_VERBS_LIST,
         selected_verb_type=verb_type,
         selected_tense=tense,
         selected_section=selected_section,
@@ -97,14 +126,14 @@ def index():
 def update_role():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    users = load_users()
+    users = list(users_collection.find({}, {'_id': 0}))
     current_user = next((u for u in users if u['id'] == session['user_id']), None)
     if not current_user or current_user.get('role') != 'admin':
         flash('Acesso negado.', 'danger')
         return redirect(url_for('index'))
     email = request.form.get('email')
     new_role = request.form.get('role')
-    target_user = next((u for u in users if u['email'] == email), None)
+    target_user = users_collection.find_one({'email': email}, {'_id': 0})
     if not target_user:
         flash('Usuário não encontrado.', 'danger')
         return redirect(url_for('index'))
@@ -117,8 +146,8 @@ def update_role():
     if new_role not in ['student', 'teacher']:
         flash('Papel inválido.', 'danger')
         return redirect(url_for('index'))
-    target_user['role'] = new_role
-    save_users(users)
+    # Update role directly in MongoDB
+    users_collection.update_one({'id': target_user['id']}, {'$set': {'role': new_role}})
     flash('Papel do usuário atualizado.', 'success')
     return redirect(url_for('index'))
 
@@ -133,8 +162,9 @@ def register():
         hashed_pw = generate_password_hash(password)
         confirmation_token = str(uuid.uuid4())
         confirmation_sent_at = datetime.utcnow().isoformat()
+        # Generate a unique id for the user
         user = {
-            'id': len(load_users()) + 1,
+            'id': str(uuid.uuid4()),
             'email': email,
             'password': hashed_pw,
             'progress': {},
@@ -143,7 +173,7 @@ def register():
             'confirmation_sent_at': confirmation_sent_at,
             'role': 'student'
         }
-        add_user(user)
+        users_collection.insert_one(user)
         send_confirmation_email(email, confirmation_token)
         flash('Registro realizado com sucesso! Confirme a sua conta pelo link enviado para o seu e-mail.', 'success')
         return redirect(url_for('login'))
@@ -165,8 +195,7 @@ def send_confirmation_email(email, token):
 
 @app.route('/confirm/<token>')
 def confirm_email(token):
-    users = load_users()
-    user = next((u for u in users if u.get('confirmation_token') == token), None)
+    user = users_collection.find_one({'confirmation_token': token})
     if not user:
         return render_template('link_expired.html')
     sent_at = datetime.fromisoformat(user['confirmation_sent_at'])
@@ -175,9 +204,10 @@ def confirm_email(token):
     user['confirmed'] = True
     user['confirmation_token'] = ''
     user['confirmation_sent_at'] = ''
-    save_users(users)
+    update_user(user)
     session['user_id'] = user['id']
     session['email'] = user['email']
+    session['role'] = user.get('role', '')  # store role
     flash('Conta confirmada com sucesso! Bem-vindo!', 'success')
     return redirect(url_for('index'))
 
@@ -195,6 +225,7 @@ def login():
                 return render_template('login.html')
             session['user_id'] = user['id']
             session['email'] = user['email']
+            session['role'] = user.get('role', '')  # store user role for admin access
             flash('Login realizado com sucesso!', 'success')
             return redirect(url_for('index'))
         else:
@@ -232,24 +263,65 @@ def reset_password():
         return redirect(url_for('login'))
     return render_template('reset.html')
 
-@app.route('/reset_confirm/<token>', methods=['GET', 'POST'])
+@app.route('/reset_confirm/<token>', methods=['GET'])
 def reset_confirm(token):
-    users = load_users()
-    user = next((u for u in users if u.get('reset_token') == token), None)
+    user = users_collection.find_one({'reset_token': token})
     if not user:
         return render_template('link_expired.html')
     sent_at = datetime.fromisoformat(user['reset_sent_at'])
     if datetime.utcnow() > sent_at + timedelta(hours=72):
         return render_template('link_expired.html')
-    if request.method == 'POST':
-        new_password = request.form['password']
-        user['password'] = generate_password_hash(new_password)
-        user['reset_token'] = ''
-        user['reset_sent_at'] = ''
-        save_users(users)
-        flash('Palavra-passe redefinida com sucesso! Agora pode iniciar sessão.', 'success')
-        return redirect(url_for('login'))
-    return render_template('reset_confirm.html', token=token)
+    # Редиректим на отдельную страницу сброса пароля
+    return redirect(url_for('reset_password_token', token=token))
+
+# Новый маршрут для сброса пароля по токену
+@app.route('/reset_password', methods=['GET'])
+def reset_password_token():
+    token = request.args.get('token')
+    if not token:
+        return render_template('link_expired.html')
+    user = users_collection.find_one({'reset_token': token})
+    if not user:
+        return render_template('link_expired.html')
+    sent_at = datetime.fromisoformat(user['reset_sent_at'])
+    if datetime.utcnow() > sent_at + timedelta(hours=72):
+        return render_template('link_expired.html')
+    # Показываем форму для ввода нового пароля
+    return render_template('reset_password.html', token=token)
+
+
+from flask import jsonify, request
+
+from csrf import csrf
+
+@app.route('/api/reset_password', methods=['POST'])
+@csrf.exempt
+def api_reset_password():
+    data = request.get_json()
+    token = data.get('token')
+    password = data.get('password')
+    if not token or not password:
+        return jsonify({'success': False, 'message': 'Токен и пароль обязательны.'}), 400
+    user = users_collection.find_one({'reset_token': token})
+    if not user:
+        return jsonify({'success': False, 'message': 'Ссылка для сброса пароля недействительна или устарела.'}), 400
+    sent_at = datetime.fromisoformat(user['reset_sent_at'])
+    if datetime.utcnow() > sent_at + timedelta(hours=72):
+        return jsonify({'success': False, 'message': 'Срок действия ссылки истёк.'}), 400
+    if len(password) < 6:
+        return jsonify({'success': False, 'message': 'Пароль должен быть не менее 6 символов.'}), 400
+    # Обновляем пароль, подтверждаем email, очищаем токены
+    users_collection.update_one({'_id': user['_id']}, {'$set': {
+        'password': generate_password_hash(password),
+        'reset_token': '',
+        'reset_sent_at': '',
+        'confirmed': True
+    }})
+    # Сохраняем пользователя в сессии (автоматический вход)
+    session['user_id'] = user['id']
+    session['email'] = user['email']
+    session['role'] = user.get('role', '')
+    return jsonify({'success': True, 'redirect': url_for('index'), 'message': 'Пароль успешно изменён. Выполнен вход.'})
 
 @app.route('/resend_confirmation', methods=['POST'])
 def resend_confirmation():
@@ -327,25 +399,42 @@ def log_email_send(user):
     user['email_send_log'] = log
 
 def update_user(user):
-    users = load_users()
-    for i, u in enumerate(users):
-        if u['email'] == user['email']:
-            users[i] = user
-    save_users(users)
+    users_collection.update_one({'email': user['email']}, {'$set': user})
 
+
+from csrf import csrf
 
 @app.route('/check', methods=['POST'])
+@csrf.exempt
 def check_conjugation():
-    data = request.get_json()
-    verb = data['verb']
-    tense = data['tense']
-    person = data['person']
-    answer = data['answer']
-    verb_dict = IRREGULAR_VERBS if verb in IRREGULAR_VERBS else REGULAR_VERBS
-    correct_answer = verb_dict[verb][tense][person]
-    return jsonify({
-        'correct': answer.lower().strip() == correct_answer.lower()
-    })
+    import sys
+    data = request.get_json(force=True, silent=True)
+    print('DEBUG /check: raw data:', request.data, file=sys.stderr)
+    print('DEBUG /check: parsed json:', data, file=sys.stderr)
+    if not data:
+        return jsonify({'correct': False, 'message': 'Некорректный JSON или пустой запрос.'}), 400
+    verb = data.get('verb')
+    tense = data.get('tense')
+    person = data.get('person')
+    answer = data.get('answer')
+    # Используем словари для быстрого поиска
+    if verb in IRREGULAR_VERBS_DICT:
+        verb_obj = IRREGULAR_VERBS_DICT[verb]
+    elif verb in REGULAR_VERBS_DICT:
+        verb_obj = REGULAR_VERBS_DICT[verb]
+    else:
+        print('DEBUG /check: verb not found', file=sys.stderr)
+        return jsonify({'correct': False, 'message': 'Глагол не найден.'}), 400
+    try:
+        correct_answer = verb_obj[tense][person]
+    except Exception as e:
+        print(f'DEBUG /check: exception: {e}', file=sys.stderr)
+        return jsonify({'correct': False, 'message': 'Некорректные данные.'}), 400
+    result = {'correct': answer.lower().strip() == correct_answer.lower()}
+    print('DEBUG /check: result:', result, file=sys.stderr)
+    return jsonify(result)
+
+
 
 # Production deployment: use a WSGI server like gunicorn
 # Example: gunicorn -b 0.0.0.0:5000 app:app
