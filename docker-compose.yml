@@ -28,6 +28,8 @@ services:
     env_file:
       - .env
     environment:
+      # Use full URI if set (handles encoded usernames/passwords)
+      - ME_CONFIG_MONGODB_URL=${ME_CONFIG_MONGODB_URL}
       - ME_CONFIG_MONGODB_SERVER=mongo
       - ME_CONFIG_MONGODB_PORT=27017
       - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
