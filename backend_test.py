@@ -21,8 +21,8 @@ def test_post_waitlist():
     # Test 1: Valid email with name
     print("\n1. Testing valid email with name...")
     test_data = {
-        "email": "john.doe@example.com",
-        "name": "John Doe"
+        "email": f"test.user.{datetime.now().strftime('%Y%m%d%H%M%S')}@example.com",
+        "name": "Test User"
     }
     
     try:
