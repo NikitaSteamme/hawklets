@@ -37,6 +37,18 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Waitlist Models
+class WaitlistCreate(BaseModel):
+    name: Optional[str] = None
+    email: EmailStr
+
+class Waitlist(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: Optional[str] = None
+    email: EmailStr
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
