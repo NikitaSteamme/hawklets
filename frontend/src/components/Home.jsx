@@ -4,28 +4,40 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Check, Users, Smartphone, Zap, Target, Gamepad2, Heart, TrendingUp, ChevronRight } from 'lucide-react';
-import { useToast } from '../hooks/use-toast';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 export const Home = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const handleWaitlistSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Mock submission for now - will integrate backend later
-    setTimeout(() => {
-      toast({
-        title: "You're on the list!",
+    try {
+      const response = await axios.post(`${API}/waitlist`, {
+        name: name || undefined,
+        email: email
+      });
+      
+      toast.success("You're on the list!", {
         description: "We'll notify you when Hawklets launches.",
       });
+      
       setEmail('');
       setName('');
+    } catch (error) {
+      toast.error("Error", {
+        description: error.response?.data?.detail || "Something went wrong. Please try again.",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const scrollToWaitlist = () => {
