@@ -66,7 +66,7 @@ def test_post_waitlist():
     # Test 3: Duplicate email (should return 400)
     print("\n3. Testing duplicate email...")
     test_data = {
-        "email": "john.doe@example.com",
+        "email": "john.doe@example.com",  # Using existing email from previous test
         "name": "John Duplicate"
     }
     
