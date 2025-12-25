@@ -44,7 +44,7 @@ def test_post_waitlist():
     # Test 2: Valid email without name
     print("\n2. Testing valid email without name...")
     test_data = {
-        "email": "jane.smith@example.com"
+        "email": f"test.user2.{datetime.now().strftime('%Y%m%d%H%M%S')}@example.com"
     }
     
     try:
