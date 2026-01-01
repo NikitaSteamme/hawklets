@@ -15,6 +15,27 @@ services:
     # ports:
     #   - "27017:27017"
 
+  traefik:
+    image: traefik:v2.10
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.myresolver.acme.httpchallenge=true
+      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.myresolver.acme.email=${LETSENCRYPT_EMAIL}
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/traefik/letsencrypt:/letsencrypt
+    networks:
+      - web
+
   backend:
     build:
       context: .
@@ -28,8 +49,16 @@ services:
       - CORS_ORIGINS=https://hawklets.com
     expose:
       - "8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hawklets-api.rule=Host(`hawklets.com`) && PathPrefix(`/api`)
+"
+      - "traefik.http.routers.hawklets-api.entrypoints=web,websecure"
+      - "traefik.http.routers.hawklets-api.tls=true"
+      - "traefik.http.routers.hawklets-api.tls.certresolver=myresolver"
+      - "traefik.http.services.hawklets-api.loadbalancer.server.port=8000"
     networks:
-      - hawknet
+      - web
 
   frontend:
     build:
@@ -38,10 +67,18 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "80:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hawklets.rule=Host(`hawklets.com`, `www.hawklets.com`)"
+      - "traefik.http.routers.hawklets.entrypoints=web,websecure"
+      - "traefik.http.routers.hawklets.tls=true"
+      - "traefik.http.routers.hawklets.tls.certresolver=myresolver"
+      - "traefik.http.services.hawklets.loadbalancer.server.port=80"
     networks:
-      - hawknet
+      - web
+
+volumes:
+  mongo-data:
 
 volumes:
   mongo-data:
@@ -49,3 +86,5 @@ volumes:
 networks:
   hawknet:
     driver: bridge
+  web:
+    external: false
