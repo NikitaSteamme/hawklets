@@ -41,6 +41,13 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
+    # Resource limits to avoid host thread/process exhaustion on small VPS
+    pids_limit: 8192
+    ulimits:
+      nproc: 4096
+      nofile:
+        soft: 4096
+        hard: 65536
     depends_on:
       - mongo
     environment:
