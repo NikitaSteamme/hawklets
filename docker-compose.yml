@@ -51,8 +51,7 @@ services:
       - "8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.hawklets-api.rule=Host(`hawklets.com`) && PathPrefix(`/api`)
-"
+      - "traefik.http.routers.hawklets-api.rule=Host(`hawklets.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.hawklets-api.entrypoints=web,websecure"
       - "traefik.http.routers.hawklets-api.tls=true"
       - "traefik.http.routers.hawklets-api.tls.certresolver=myresolver"
@@ -76,9 +75,6 @@ services:
       - "traefik.http.services.hawklets.loadbalancer.server.port=80"
     networks:
       - web
-
-volumes:
-  mongo-data:
 
 volumes:
   mongo-data:
