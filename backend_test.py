@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Backend URL from frontend environment
-BACKEND_URL = "https://progress-verify.preview.emergentagent.com/api"
+BACKEND_URL = "https://hawklets.com/api"
 
 def test_post_waitlist():
     """Test POST /api/waitlist endpoint"""
