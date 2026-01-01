@@ -18,6 +18,9 @@ services:
   traefik:
     image: traefik:v2.10
     restart: unless-stopped
+    # Workaround: set Docker API version used by Traefik client to satisfy newer daemon
+    environment:
+      - DOCKER_API_VERSION=1.44
     command:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
