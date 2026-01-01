@@ -115,7 +115,8 @@ async def add_to_waitlist(input: WaitlistCreate):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error adding to waitlist: {str(e)}")
+        # Log full exception traceback for easier debugging
+        logger.exception("Error adding to waitlist")
         raise HTTPException(status_code=500, detail="Failed to add to waitlist")
 
 @api_router.get("/waitlist")
