@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Use relative /api when REACT_APP_BACKEND_URL is not set, to avoid CORS and hard-coded hosts
+const API = BACKEND_URL ? `${BACKEND_URL}/api` : `/api`;
 
 export const Home = () => {
   const [email, setEmail] = useState('');
