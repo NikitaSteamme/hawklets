@@ -4,12 +4,14 @@ http:
       rule: "Host(`hawklets.com`) || Host(`www.hawklets.com`)"
       service: hawklets-service
       entryPoints: ["websecure", "web"]
-      tls: {}
+      tls:
+        certResolver: myresolver
     hawklets-api:
       rule: "Host(`hawklets.com`) && PathPrefix(`/api`)"
       service: hawklets-api
       entryPoints: ["websecure", "web"]
-      tls: {}
+      tls:
+        certResolver: myresolver
 
   services:
     hawklets-service:
