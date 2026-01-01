@@ -18,12 +18,9 @@ services:
   traefik:
     image: traefik:v2.10
     restart: unless-stopped
-    # Workaround: set Docker API version used by Traefik client to satisfy newer daemon
-    environment:
-      - DOCKER_API_VERSION=1.52
     command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.myresolver.acme.httpchallenge=true
@@ -34,7 +31,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic
       - ./docker/traefik/letsencrypt:/letsencrypt
     networks:
       - web

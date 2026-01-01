@@ -1,0 +1,22 @@
+http:
+  routers:
+    hawklets:
+      rule: "Host(`hawklets.com`) || Host(`www.hawklets.com`)"
+      service: hawklets-service
+      entryPoints: ["websecure", "web"]
+      tls: {}
+    hawklets-api:
+      rule: "Host(`hawklets.com`) && PathPrefix(`/api`)"
+      service: hawklets-api
+      entryPoints: ["websecure", "web"]
+      tls: {}
+
+  services:
+    hawklets-service:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+    hawklets-api:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"
