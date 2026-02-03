@@ -102,8 +102,8 @@ export const Home = () => {
             </div>
             <div className="relative">
               <div className="relative z-10">
-                <img 
-                  src="https://customer-assets.emergentagent.com/job_progress-verify/artifacts/bhlala9g_ChatGPT%20Image%20Dec%2024%2C%202025%2C%2002_20_15%20PM.png"
+                <img
+                  src="https://placehold.co/600x400/amber/white?text=Hawklets"
                   alt="Hawklets mascots"
                   className="w-full h-auto drop-shadow-2xl"
                 />
@@ -216,8 +216,8 @@ export const Home = () => {
           </div>
 
           <div className="mt-16 text-center">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_progress-verify/artifacts/pgubs8t8_ChatGPT%20Image%20Dec%2025%2C%202025%2C%2011_54_00%20AM.png"
+            <img
+              src="https://placehold.co/800x500/amber/white?text=Hawklets+in+Action"
               alt="Hawklets in action"
               className="w-full max-w-3xl mx-auto rounded-3xl shadow-2xl"
             />
@@ -364,8 +364,8 @@ export const Home = () => {
               Hawklets evolves into a platform of challenges and events—a motivation system powered by real actions, where a community grows together through the journey, not just the destination.
             </p>
             <div className="pt-8">
-              <img 
-                src="https://customer-assets.emergentagent.com/job_progress-verify/artifacts/pevfwck6_freepik__-__30139.png"
+              <img
+                src="https://placehold.co/256x256/amber/white?text=Hawklet"
                 alt="Hawklet mascot"
                 className="w-64 h-64 mx-auto drop-shadow-2xl"
               />

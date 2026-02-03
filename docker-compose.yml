@@ -56,6 +56,13 @@ services:
       - CORS_ORIGINS=https://hawklets.com
     expose:
       - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.hawklets-api.rule=Host(`hawklets.com`) && PathPrefix(`/api`)"
