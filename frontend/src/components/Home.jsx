@@ -103,7 +103,7 @@ export const Home = () => {
             <div className="relative">
               <div className="relative z-10">
                 <img
-                  src="https://placehold.co/600x400/amber/white?text=Hawklets"
+                  src="/img/img1.png"
                   alt="Hawklets mascots"
                   className="w-full h-auto drop-shadow-2xl"
                 />
@@ -217,7 +217,7 @@ export const Home = () => {
 
           <div className="mt-16 text-center">
             <img
-              src="https://placehold.co/800x500/amber/white?text=Hawklets+in+Action"
+              src="/img/img2.png"
               alt="Hawklets in action"
               className="w-full max-w-3xl mx-auto rounded-3xl shadow-2xl"
             />
@@ -365,7 +365,7 @@ export const Home = () => {
             </p>
             <div className="pt-8">
               <img
-                src="https://placehold.co/256x256/amber/white?text=Hawklet"
+                src="/img/img3.png"
                 alt="Hawklet mascot"
                 className="w-64 h-64 mx-auto drop-shadow-2xl"
               />
