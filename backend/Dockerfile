@@ -5,12 +5,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python deps
+# Install Python deps (no build tools needed for our dependencies)
 COPY backend/requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip && pip install --no-cache-dir -r /app/requirements.txt
 
@@ -19,4 +14,4 @@ COPY backend/ /app/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
