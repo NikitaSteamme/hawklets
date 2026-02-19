@@ -77,4 +77,35 @@ agenthub/agents/youtube/db
 .cache/
 
 # Mobile development
-android-sdk/ 
+android-sdk/
+
+# Production environment files
+.env
+backend/.env
+*.env.local
+*.env.production
+*.env.staging
+
+# Database files and volumes
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker volumes
+docker/postgres-data/
+docker/mongo-data/
+docker/redis-data/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

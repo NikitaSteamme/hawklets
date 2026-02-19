@@ -14,6 +14,38 @@ services:
     # If you need to connect from host, uncomment the next line
     # ports:
     #   - "27017:27017"
+    networks:
+      - hawknet
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hawklets}
+      POSTGRES_USER: ${POSTGRES_USER:-hawklets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hawklets_password}
+    ports:
+      - "5432:5432"
+    networks:
+      - hawknet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hawklets}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - hawknet
+    command: redis-server --appendonly yes
 
   traefik:
     image: traefik:v2.10
@@ -50,14 +82,24 @@ services:
         hard: 65536
     depends_on:
       - mongo
+      - postgres
+      - redis
     environment:
       - MONGO_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
       - DB_NAME=${MONGO_INITDB_DATABASE}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-hawklets}
+      - POSTGRES_USER=${POSTGRES_USER:-hawklets}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hawklets_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
       - CORS_ORIGINS=https://hawklets.com
     expose:
       - "8000"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/status || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -72,6 +114,7 @@ services:
       - "traefik.http.services.hawklets-api.loadbalancer.server.port=8000"
     networks:
       - web
+      - hawknet
 
   frontend:
     build:
@@ -92,6 +135,8 @@ services:
 
 volumes:
   mongo-data:
+  postgres-data:
+  redis-data:
 
 networks:
   hawknet:

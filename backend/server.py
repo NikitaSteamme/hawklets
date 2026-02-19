@@ -5,10 +5,28 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr, validator
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
+import sys
+
+# Импорт роутеров
+# Add parent directory to sys.path to allow both absolute and relative imports
+current_dir = Path(__file__).parent
+parent_dir = current_dir.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+try:
+    from backend.routers import auth, exercises, templates
+except ImportError:
+    # If backend.routers doesn't work, try direct import
+    try:
+        from routers import auth, exercises, templates
+    except ImportError:
+        # Last resort: try relative import
+        from .routers import auth, exercises, templates
 
 # Configure logging
 logging.basicConfig(
@@ -26,11 +44,21 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(
+    title="Hawklets API",
+    description="API for Hawklets fitness tracking application",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Подключаем роутеры
+api_router.include_router(auth.router)
+api_router.include_router(exercises.router)
+api_router.include_router(templates.router)
 
 # Define Models
 class StatusCheck(BaseModel):
@@ -58,7 +86,19 @@ class Waitlist(BaseModel):
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Hawklets API", "version": "1.0.0"}
+
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "services": {
+            "mongodb": "connected" if client else "disconnected",
+            "api": "running"
+        }
+    }
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
@@ -153,4 +193,4 @@ app.add_middleware(
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    await client.close()
