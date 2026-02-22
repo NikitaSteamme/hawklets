@@ -2,28 +2,47 @@ version: "3.8"
 
 services:
   mongo:
-    image: mongo:6.0
+    image: mongo:4.4
     restart: unless-stopped
+    # Use bind mount instead of named volume to save space
     volumes:
-      - mongo-data:/data/db
+      - ./data/mongo:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password}
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-hawklets_db}
+    # Resource limits for small VPS
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     networks:
       - hawknet
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   postgres:
     image: postgres:15-alpine
     restart: unless-stopped
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hawklets}
       POSTGRES_USER: ${POSTGRES_USER:-hawklets}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hawklets_password}
-    ports:
-      - "5432:5432"
+    # Resource limits for small VPS
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
     networks:
       - hawknet
     healthcheck:
@@ -36,50 +55,35 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
-      - redis-data:/data
-    ports:
-      - "6379:6379"
+      - ./data/redis:/data
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    # Resource limits for small VPS
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
     networks:
       - hawknet
-    command: redis-server --appendonly yes
-
-  traefik:
-    image: traefik:v2.10
-    restart: unless-stopped
-    command:
-      - --providers.file.directory=/etc/traefik/dynamic
-      - --providers.file.watch=true
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.myresolver.acme.httpchallenge=true
-      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.myresolver.acme.email=${LETSENCRYPT_EMAIL}
-      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/traefik/dynamic:/etc/traefik/dynamic
-      - ./docker/traefik/letsencrypt:/letsencrypt
-    networks:
-      - web
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
-    # Resource limits to avoid host thread/process exhaustion on small VPS
-    pids_limit: 8192
-    ulimits:
-      nproc: 4096
-      nofile:
-        soft: 4096
-        hard: 65536
     depends_on:
-      - mongo
-      - postgres
-      - redis
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - MONGO_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
       - DB_NAME=${MONGO_INITDB_DATABASE}
@@ -91,25 +95,24 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
-      - CORS_ORIGINS=https://hawklets.com
-    expose:
-      - "8000"
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,https://hawklets.com
+    # Resource limits for small VPS
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    ports:
+      - "127.0.0.1:8000:8000"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
     stop_grace_period: 30s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hawklets-api.rule=Host(`hawklets.com`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.hawklets-api.entrypoints=web,websecure"
-      - "traefik.http.routers.hawklets-api.tls=true"
-      - "traefik.http.routers.hawklets-api.tls.certresolver=myresolver"
-      - "traefik.http.services.hawklets-api.loadbalancer.server.port=8000"
     networks:
-      - web
       - hawknet
 
   frontend:
@@ -119,23 +122,18 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hawklets.rule=Host(`hawklets.com`, `www.hawklets.com`)"
-      - "traefik.http.routers.hawklets.entrypoints=web,websecure"
-      - "traefik.http.routers.hawklets.tls=true"
-      - "traefik.http.routers.hawklets.tls.certresolver=myresolver"
-      - "traefik.http.services.hawklets.loadbalancer.server.port=80"
+    # Resource limits for small VPS
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    ports:
+      - "127.0.0.1:8080:80"
     networks:
-      - web
-
-volumes:
-  mongo-data:
-  postgres-data:
-  redis-data:
+      - hawknet
 
 networks:
   hawknet:
     driver: bridge
-  web:
-    external: false
