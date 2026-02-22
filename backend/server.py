@@ -1,6 +1,10 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import APIKeyHeader
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -43,14 +47,43 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# API Key configuration
+API_KEY_NAME = "X-API-Key"
+API_KEY = os.getenv("API_KEY", "default-api-key-change-in-production")
+
+# Security scheme for OpenAPI docs
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+async def verify_api_key(api_key_header: str = Depends(api_key_header)):
+    """Verify API key from request header"""
+    if not api_key_header:
+        raise HTTPException(
+            status_code=401,
+            detail="API key is missing"
+        )
+    
+    if api_key_header != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key"
+        )
+    
+    return api_key_header
+
 # Create the main app without a prefix
 app = FastAPI(
     title="Hawklets API",
     description="API for Hawklets fitness tracking application",
     version="1.0.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
+    dependencies=[Depends(verify_api_key)]  # Apply to all endpoints
 )
+
+# Database dependency (for future use)
+async def get_database():
+    """Dependency to get database connection"""
+    return db
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")

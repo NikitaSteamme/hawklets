@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 import os
 import sys
 from pathlib import Path
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 # Add parent directory to sys.path to allow both absolute and relative imports
 current_dir = Path(__file__).parent
@@ -72,7 +73,15 @@ def create_refresh_token(data: dict) -> str:
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_db():
+    """Dependency to get database connection"""
+    # This will be overridden when the router is included in the main app
+    raise NotImplementedError("Database dependency not configured")
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
     """Получает текущего пользователя из токена"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -90,9 +99,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except jwt.PyJWTError:
         raise credentials_exception
     
-    # Здесь нужно получить пользователя из базы данных
-    # Пока возвращаем заглушку
-    return {"id": user_id, "email": "user@example.com"}
+    # Получаем пользователя из базы данных
+    user = await db.users.find_one({"_id": user_id})
+    if not user:
+        raise credentials_exception
+    
+    return {
+        "id": str(user["_id"]),
+        "email": user["email"],
+        "display_name": user.get("display_name", ""),
+        "permissions": user.get("permissions", [])
+    }
 
 
 @router.post("/register", response_model=UserResponse)

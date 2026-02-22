@@ -109,3 +109,18 @@ logs/
 # Temporary files
 tmp/
 temp/
+.env.example
+setup-cloudflare.sh
+postman/Hawklets API.postman_collection.json
+postman/Hawklets-API.postman_collection.json
+postman/Hawklets-Environments.postman_environment.json
+postman/Hawklets-Local.postman_environment.json
+postman/Hawklets-Production.postman_environment.json
+postman/examples/auth-examples.json
+postman/examples/exercises-examples.json
+postman/examples/templates-examples.json
+postman/test-scripts/auth-tests.js
+postman/test-scripts/exercises-tests.js
+postman/test-scripts/health-waitlist-tests.js
+postman/test-scripts/templates-tests.js
+postman/README.md
