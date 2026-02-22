@@ -85,8 +85,8 @@ async def get_database():
     """Dependency to get database connection"""
     return db
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# Create a router with the /api prefix and API key dependency
+api_router = APIRouter(prefix="/api", dependencies=[Depends(verify_api_key)])
 
 # Подключаем роутеры
 api_router.include_router(auth.router)
