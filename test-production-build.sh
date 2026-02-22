@@ -78,7 +78,7 @@ fi
 
 echo
 echo "7. Проверка docker-compose.prod.yml синтаксиса..."
-if docker compose -f docker-compose.prod.yml config > /dev/null 2>&1; then
+if docker-compose -f docker-compose.prod.yml config > /dev/null 2>&1; then
     echo "  ✓ docker-compose.prod.yml валиден"
 else
     echo "  ✗ Ошибка в docker-compose.prod.yml"
@@ -87,7 +87,7 @@ fi
 
 echo
 echo "8. Проверка структуры сервисов..."
-services=$(docker compose -f docker-compose.prod.yml config --services)
+services=$(docker-compose -f docker-compose.prod.yml config --services)
 echo "   Найдены сервисы: $services"
 
 expected_services=("mongo" "postgres" "redis" "backend" "frontend")
@@ -120,10 +120,10 @@ echo "=== РЕЗУЛЬТАТ ТЕСТА ==="
 echo "Все проверки пройдены успешно!"
 echo
 echo "Для запуска в production выполните:"
-echo "  docker compose -f docker-compose.prod.yml up -d --build"
+echo "  docker-compose -f docker-compose.prod.yml up -d --build"
 echo
 echo "Для проверки статуса:"
-echo "  docker compose -f docker-compose.prod.yml ps"
+echo "  docker-compose -f docker-compose.prod.yml ps"
 echo
 echo "Для просмотра логов:"
-echo "  docker compose -f docker-compose.prod.yml logs -f"
+echo "  docker-compose -f docker-compose.prod.yml logs -f"

@@ -57,22 +57,23 @@ fi
 
 echo
 echo "7. Проверка Docker Compose..."
-if command -v docker-compose &> /dev/null || docker compose version &> /dev/null; then
+if command -v docker-compose &> /dev/null; then
     echo "   ✓ Docker Compose доступен"
+    docker-compose --version
 else
     echo "   ✗ Docker Compose не установлен"
-    echo "   Установите Docker Compose: https://docs.docker.com/compose/install/"
+    echo "   Установите: apt-get install docker-compose"
     exit 1
 fi
 
 echo
 echo "8. Очистка старых контейнеров (если есть)..."
-docker compose -f docker-compose.prod.yml down 2>/dev/null || true
+docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
 
 echo
 echo "9. Сборка и запуск контейнеров..."
 echo "   Это может занять несколько минут..."
-docker compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.prod.yml up -d --build
 
 echo
 echo "10. Ожидание запуска сервисов..."
@@ -80,7 +81,7 @@ sleep 10
 
 echo
 echo "11. Проверка статуса контейнеров..."
-docker compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.prod.yml ps
 
 echo
 echo "12. Проверка health checks..."
@@ -93,7 +94,7 @@ echo "13. Финальная проверка..."
 all_healthy=true
 
 # Проверка MongoDB
-if docker compose -f docker-compose.prod.yml exec -T mongo mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+if docker-compose -f docker-compose.prod.yml exec -T mongo mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
     echo "   ✓ MongoDB работает"
 else
     echo "   ✗ MongoDB не отвечает"
@@ -101,7 +102,7 @@ else
 fi
 
 # Проверка PostgreSQL
-if docker compose -f docker-compose.prod.yml exec -T postgres pg_isready -U hawklets > /dev/null 2>&1; then
+if docker-compose -f docker-compose.prod.yml exec -T postgres pg_isready -U hawklets > /dev/null 2>&1; then
     echo "   ✓ PostgreSQL работает"
 else
     echo "   ✗ PostgreSQL не отвечает"
@@ -134,16 +135,16 @@ if [ "$all_healthy" = true ]; then
     echo "  - API Health: http://localhost:8000/api/health"
     echo
     echo "Для просмотра логов:"
-    echo "  docker compose -f docker-compose.prod.yml logs -f"
+    echo "  docker-compose -f docker-compose.prod.yml logs -f"
     echo
     echo "Для остановки:"
-    echo "  docker compose -f docker-compose.prod.yml down"
+    echo "  docker-compose -f docker-compose.prod.yml down"
 else
     echo "⚠ Некоторые сервисы могут иметь проблемы"
     echo
     echo "Для диагностики:"
-    echo "  docker compose -f docker-compose.prod.yml logs"
-    echo "  docker compose -f docker-compose.prod.yml ps"
+    echo "  docker-compose -f docker-compose.prod.yml logs"
+    echo "  docker-compose -f docker-compose.prod.yml ps"
     echo
     echo "Проверьте:"
     echo "  1. Достаточно ли памяти и дискового пространства"
@@ -161,7 +162,7 @@ echo
 echo "2. Настройте домен (если есть):"
 echo "   - Обновите DNS запись A на IP сервера"
 echo "   - Обновите CORS_ORIGINS в .env файле"
-echo "   - Перезапустите: docker compose -f docker-compose.prod.yml restart"
+echo "   - Перезапустите: docker-compose -f docker-compose.prod.yml restart"
 echo
 echo "3. Настройте мониторинг:"
 echo "   docker stats"
