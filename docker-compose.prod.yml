@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   mongo:
-    image: mongo:6.0
+    image: mongo:4.4
     restart: unless-stopped
     # Use bind mount instead of named volume to save space
     volumes:
@@ -21,7 +21,7 @@ services:
     networks:
       - hawknet
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
       interval: 30s
       timeout: 10s
       retries: 3
