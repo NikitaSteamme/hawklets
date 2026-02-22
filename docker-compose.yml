@@ -95,6 +95,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - API_KEY=${API_KEY:-default-api-key-change-in-production}
       - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,https://hawklets.com
     # Resource limits for small VPS
     deploy:
