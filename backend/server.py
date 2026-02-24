@@ -89,6 +89,8 @@ async def get_database():
 api_router = APIRouter(prefix="/api", dependencies=[Depends(verify_api_key)])
 
 # Подключаем роутеры
+# Set database connection for auth router
+auth.set_db_connection(db)
 api_router.include_router(auth.router)
 api_router.include_router(exercises.router)
 api_router.include_router(templates.router)

@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import BaseModel
 
 # Add parent directory to sys.path to allow both absolute and relative imports
 current_dir = Path(__file__).parent
@@ -39,6 +40,20 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+# New models for additional endpoints
+class RefreshTokenRequest(BaseModel):
+    """Модель для запроса обновления токена"""
+    refresh_token: str
+
+class UserUpdate(BaseModel):
+    """Модель для обновления пользователя"""
+    display_name: Optional[str] = None
+    password: Optional[str] = None
+
+class DeleteAccountRequest(BaseModel):
+    """Модель для подтверждения удаления аккаунта"""
+    confirm: bool = True
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -73,10 +88,22 @@ def create_refresh_token(data: dict) -> str:
     return encoded_jwt
 
 
+# Global database connection (will be set by the main app)
+_db_connection: Optional[AsyncIOMotorDatabase] = None
+
+def set_db_connection(db: AsyncIOMotorDatabase):
+    """Set the database connection for the auth router"""
+    global _db_connection
+    _db_connection = db
+
 async def get_db():
     """Dependency to get database connection"""
-    # This will be overridden when the router is included in the main app
-    raise NotImplementedError("Database dependency not configured")
+    if _db_connection is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not configured"
+        )
+    return _db_connection
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -113,15 +140,15 @@ async def get_current_user(
 
 
 @router.post("/register", response_model=UserResponse)
-async def register(user_data: UserCreate):
+async def register(user_data: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db)):
     """Регистрация нового пользователя"""
     # Проверяем, существует ли пользователь с таким email
-    # existing_user = await db.users.find_one({"email": user_data.email})
-    # if existing_user:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="User with this email already exists"
-    #     )
+    existing_user = await db.users.find_one({"email": user_data.email})
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists"
+        )
     
     # Создаем пользователя
     user = User(
@@ -134,7 +161,7 @@ async def register(user_data: UserCreate):
     )
     
     # Сохраняем в базу данных
-    # await db.users.insert_one(user.to_mongo())
+    await db.users.insert_one(user.to_mongo())
     
     return UserResponse(
         id=user.id,
@@ -146,38 +173,41 @@ async def register(user_data: UserCreate):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
     """Вход пользователя"""
     # Находим пользователя по email
-    # user = await db.users.find_one({"email": form_data.username})
-    # if not user:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Incorrect email or password",
-    #         headers={"WWW-Authenticate": "Bearer"},
-    #     )
+    user = await db.users.find_one({"email": form_data.username})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Проверяем пароль
-    # if not verify_password(form_data.password, user["auth"]["password_hash"]):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Incorrect email or password",
-    #         headers={"WWW-Authenticate": "Bearer"},
-    #     )
+    if not verify_password(form_data.password, user["auth"]["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Обновляем время последнего входа
-    # await db.users.update_one(
-    #     {"_id": user["_id"]},
-    #     {"$set": {"auth.last_login": datetime.now(timezone.utc)}}
-    # )
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"auth.last_login": datetime.now(timezone.utc)}}
+    )
     
     # Создаем токены
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": "user_id"},  # Заменить на user["_id"]
+        data={"sub": str(user["_id"])},
         expires_delta=access_token_expires
     )
-    refresh_token = create_refresh_token(data={"sub": "user_id"})
+    refresh_token = create_refresh_token(data={"sub": str(user["_id"])})
     
     return TokenResponse(
         access_token=access_token,
@@ -188,10 +218,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(refresh_token: str):
-    """Обновление access токена"""
+async def refresh_token(
+    request: RefreshTokenRequest,
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """Обновление access токена (использует JSON body вместо query parameter)"""
     try:
-        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         token_type: str = payload.get("type")
         
@@ -202,12 +235,12 @@ async def refresh_token(refresh_token: str):
             )
         
         # Проверяем, существует ли пользователь
-        # user = await db.users.find_one({"_id": user_id})
-        # if not user:
-        #     raise HTTPException(
-        #         status_code=status.HTTP_401_UNAUTHORIZED,
-        #         detail="User not found"
-        #     )
+        user = await db.users.find_one({"_id": user_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
         
         # Создаем новый access токен
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -230,19 +263,98 @@ async def refresh_token(refresh_token: str):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+async def get_current_user_info(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
     """Получение информации о текущем пользователе"""
-    # user = await db.users.find_one({"_id": current_user["id"]})
-    # if not user:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="User not found"
-    #     )
+    user = await db.users.find_one({"_id": current_user["id"]})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
     
     return UserResponse(
-        id=current_user["id"],
-        email=current_user["email"],
-        display_name="John Doe",  # Заменить на user["display_name"]
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        id=str(user["_id"]),
+        email=user["email"],
+        display_name=user.get("display_name", ""),
+        created_at=user.get("created_at", datetime.now(timezone.utc)),
+        updated_at=user.get("updated_at", datetime.now(timezone.utc))
     )
+
+
+@router.put("/update", response_model=UserResponse)
+async def update_user(
+    update_data: UserUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """Обновление информации пользователя"""
+    update_fields = {}
+    
+    if update_data.display_name is not None:
+        update_fields["display_name"] = update_data.display_name
+    
+    if update_data.password is not None:
+        update_fields["auth.password_hash"] = get_password_hash(update_data.password)
+    
+    if not update_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields to update"
+        )
+    
+    # Добавляем updated_at
+    update_fields["updated_at"] = datetime.now(timezone.utc)
+    
+    # Обновляем пользователя в базе данных
+    await db.users.update_one(
+        {"_id": current_user["id"]},
+        {"$set": update_fields}
+    )
+    
+    # Получаем обновленного пользователя
+    updated_user = await db.users.find_one({"_id": current_user["id"]})
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found after update"
+        )
+    
+    return UserResponse(
+        id=str(updated_user["_id"]),
+        email=updated_user["email"],
+        display_name=updated_user.get("display_name", ""),
+        created_at=updated_user.get("created_at", datetime.now(timezone.utc)),
+        updated_at=updated_user.get("updated_at", datetime.now(timezone.utc))
+    )
+
+
+@router.delete("/delete")
+async def delete_user(
+    confirm_request: DeleteAccountRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """Удаление аккаунта пользователя"""
+    if not confirm_request.confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account deletion must be confirmed"
+        )
+    
+    # Удаляем пользователя из базы данных
+    result = await db.users.delete_one({"_id": current_user["id"]})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return {
+        "success": True,
+        "message": "Account deleted successfully",
+        "user_id": current_user["id"]
+    }
