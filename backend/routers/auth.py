@@ -174,12 +174,12 @@ async def register(user_data: UserCreate, db: AsyncIOMotorDatabase = Depends(get
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    user_data: UserLogin,
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Вход пользователя"""
     # Находим пользователя по email
-    user = await db.users.find_one({"email": form_data.username})
+    user = await db.users.find_one({"email": user_data.email})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -188,7 +188,7 @@ async def login(
         )
     
     # Проверяем пароль
-    if not verify_password(form_data.password, user["auth"]["password_hash"]):
+    if not verify_password(user_data.password, user["auth"]["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
