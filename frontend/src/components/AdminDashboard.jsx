@@ -63,11 +63,11 @@ const AdminDashboard = () => {
   };
 
   const navigationItems = [
-    { name: 'Дашборд', path: '/admin', icon: <Home className="w-5 h-5" /> },
-    { name: 'Пользователи', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
-    { name: 'Статистика', path: '/admin/stats', icon: <BarChart3 className="w-5 h-5" /> },
-    { name: 'Администраторы', path: '/admin/admins', icon: <Shield className="w-5 h-5" /> },
-    { name: 'Настройки', path: '/admin/settings', icon: <Settings className="w-5 h-5" /> },
+    { name: 'Дашборд', path: '/admin/dashboard', icon: <Home className="w-5 h-5" /> },
+    { name: 'Пользователи', path: '/admin/dashboard/users', icon: <Users className="w-5 h-5" /> },
+    { name: 'Статистика', path: '/admin/dashboard/stats', icon: <BarChart3 className="w-5 h-5" /> },
+    { name: 'Администраторы', path: '/admin/dashboard/admins', icon: <Shield className="w-5 h-5" /> },
+    { name: 'Настройки', path: '/admin/dashboard/settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
   if (loading) {

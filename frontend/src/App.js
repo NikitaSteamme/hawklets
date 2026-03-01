@@ -5,6 +5,7 @@ import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import AdminHome from './components/AdminHome';
 import AdminUsers from './components/AdminUsers';
+import AdminRedirect from './components/AdminRedirect';
 import { Toaster } from './components/ui/sonner';
 
 // Placeholder components for other admin pages
@@ -19,7 +20,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminDashboard />}>
+          {/* Основной маршрут /admin с редиректом */}
+          <Route path="/admin" element={<AdminRedirect />} />
+          {/* Защищенные маршруты админ-панели */}
+          <Route path="/admin/dashboard" element={<AdminDashboard />}>
             <Route index element={<AdminHome />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="stats" element={<AdminStats />} />

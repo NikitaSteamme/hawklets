@@ -32,7 +32,7 @@ const AdminLogin = () => {
       });
       
       // Перенаправляем на админ-панель
-      navigate('/admin');
+      navigate('/admin/dashboard');
     } catch (error) {
       toast.error("Ошибка входа", {
         description: error.response?.data?.detail || "Неверное имя пользователя или пароль",
