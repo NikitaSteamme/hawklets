@@ -143,7 +143,7 @@ pm.test("Account deleted successfully", function () {
 | Переменная | Описание | Пример значения |
 |------------|----------|-----------------|
 | `base_url` | Базовый URL API | `https://hawklets.com/api` |
-| `api_key` | API ключ | `51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1` |
+| `api_key` | API ключ | `*****` |
 | `email` | Email пользователя | `test@example.com` |
 | `password` | Пароль пользователя | `TestPassword123!` |
 | `access_token` | Access token (устанавливается автоматически) | |
@@ -242,7 +242,7 @@ pm.request.headers.add({
 2. **Примеры запросов:** `API_EXAMPLES.md`
 3. **Тестовый скрипт:** `test_user_auth_complete.py`
 4. **Production URL:** `https://hawklets.com/api`
-5. **API Key:** `51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1`
+5. **API Key:** `*****`
 
 ## Контакты для поддержки
 
