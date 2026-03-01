@@ -19,6 +19,24 @@ class User(BaseDocument):
         ]
 
 
+class Admin(BaseDocument):
+    """Модель администратора"""
+    email: EmailStr
+    username: str
+    full_name: Optional[str] = None
+    role: str = Field(default="admin")  # admin/superadmin
+    permissions: List[str] = Field(default_factory=list)
+    auth: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        collection_name = "admins"
+        indexes = [
+            {"key": [("email", 1)], "unique": True},
+            {"key": [("username", 1)], "unique": True},
+            {"key": [("created_at", -1)]}
+        ]
+
+
 class ExerciseGlobal(BaseDocument):
     """Глобальные упражнения (общие для всех пользователей)"""
     name: str

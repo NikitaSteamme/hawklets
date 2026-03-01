@@ -23,14 +23,14 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 try:
-    from backend.routers import auth, exercises, templates, admin
+    from backend.routers import auth, exercises, templates, admin_auth, admin_management
 except ImportError:
     # If backend.routers doesn't work, try direct import
     try:
-        from routers import auth, exercises, templates, admin
+        from routers import auth, exercises, templates, admin_auth, admin_management
     except ImportError:
         # Last resort: try relative import
-        from .routers import auth, exercises, templates, admin
+        from .routers import auth, exercises, templates, admin_auth, admin_management
 
 # Configure logging
 logging.basicConfig(
@@ -91,12 +91,14 @@ api_router = APIRouter(prefix="/api", dependencies=[Depends(verify_api_key)])
 # Подключаем роутеры
 # Set database connection for auth router
 auth.set_db_connection(db)
-# Set database connection for admin router
-admin.set_db_connection(db)
+# Set database connection for admin routers
+admin_auth.set_db_connection(db)
+admin_management.set_db_connection(db)
 api_router.include_router(auth.router)
 api_router.include_router(exercises.router)
 api_router.include_router(templates.router)
-api_router.include_router(admin.router)
+api_router.include_router(admin_auth.router)
+api_router.include_router(admin_management.router)
 
 # Define Models
 class StatusCheck(BaseModel):
