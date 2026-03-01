@@ -21,7 +21,7 @@ https://hawklets.com/api
 
 ### API Key
 ```
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***********
 ```
 
 ### Заголовки по умолчанию
