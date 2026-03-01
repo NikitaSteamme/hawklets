@@ -38,7 +38,7 @@ Content-Type: application/json
 ```http
 POST https://hawklets.com/api/auth/register
 Content-Type: application/json
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "email": "user@example.com",
@@ -53,7 +53,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 ```http
 POST https://hawklets.com/api/auth/login
 Content-Type: application/json
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "email": "user@example.com",
@@ -77,7 +77,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 ```http
 GET https://hawklets.com/api/auth/me
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 ```
 
 ### 4. Обновление токена
@@ -86,7 +86,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 ```http
 POST https://hawklets.com/api/auth/refresh
 Content-Type: application/json
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -100,7 +100,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 PUT https://hawklets.com/api/auth/update
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "display_name": "Updated Name",
@@ -115,7 +115,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 DELETE https://hawklets.com/api/auth/delete
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "confirm": true
@@ -129,13 +129,13 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 
 ```http
 GET https://hawklets.com/api/exercises/global
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 ```
 
 **С пагинацией:**
 ```http
 GET https://hawklets.com/api/exercises/global?page=1&page_size=20&sort_by=name&sort_order=asc
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 ```
 
 ### 2. Получение пользовательских упражнений
@@ -144,7 +144,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 ```http
 GET https://hawklets.com/api/exercises/user
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 ```
 
 ### 3. Создание пользовательского упражнения
@@ -154,7 +154,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 POST https://hawklets.com/api/exercises/user
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "name": "Custom Dumbbell Press",
@@ -176,7 +176,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 ```http
 GET https://hawklets.com/api/templates
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 ```
 
 ### 2. Создание шаблона
@@ -186,7 +186,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 POST https://hawklets.com/api/templates
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: ***************
 
 {
   "title": "Push Day",
@@ -222,7 +222,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 POST https://hawklets.com/api/sessions
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: *****
 
 {
   "template_id": "template-uuid",
@@ -238,7 +238,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 POST https://hawklets.com/api/sessions/session-uuid/sets
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
+X-API-Key: *****
 
 {
   "exercise_id": "exercise-uuid",
@@ -254,7 +254,7 @@ X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1
 ### Регистрация пользователя
 ```bash
 curl -X POST https://hawklets.com/api/auth/register \
-  -H "X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1" \
+  -H "X-API-Key: *****" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -266,7 +266,7 @@ curl -X POST https://hawklets.com/api/auth/register \
 ### Вход в систему
 ```bash
 curl -X POST https://hawklets.com/api/auth/login \
-  -H "X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1" \
+  -H "X-API-Key: *****" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -277,14 +277,14 @@ curl -X POST https://hawklets.com/api/auth/login \
 ### Получение информации о пользователе
 ```bash
 curl -X GET https://hawklets.com/api/auth/me \
-  -H "X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1" \
+  -H "X-API-Key: *****" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ### Обновление токена
 ```bash
 curl -X POST https://hawklets.com/api/auth/refresh \
-  -H "X-API-Key: 51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1" \
+  -H "X-API-Key: *****" \
   -H "Content-Type: application/json" \
   -d '{
     "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -304,7 +304,7 @@ import requests
 import json
 
 BASE_URL = "https://hawklets.com/api"
-API_KEY = "51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1"
+API_KEY = "*****"
 
 def register_user(email, display_name, password):
     """Регистрация нового пользователя"""
@@ -392,7 +392,7 @@ if __name__ == "__main__":
 ### Использование fetch API
 ```javascript
 const BASE_URL = 'https://hawklets.com/api';
-const API_KEY = '51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1';
+const API_KEY = '*****';
 
 // Регистрация пользователя
 async function registerUser(email, displayName, password) {
