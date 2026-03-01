@@ -62,11 +62,174 @@ uvicorn server:app --host 0.0.0.0 --port 8000 --workers 4
 ### Аутентификация
 
 ```
-POST /api/auth/register     - Регистрация пользователя
-POST /api/auth/login        - Вход (получение токена)
-POST /api/auth/refresh      - Обновление токена
-GET  /api/auth/me           - Информация о текущем пользователе
+POST   /api/auth/register     - Регистрация пользователя
+POST   /api/auth/login        - Вход (получение токена)
+POST   /api/auth/refresh      - Обновление токена
+GET    /api/auth/me           - Информация о текущем пользователе
+PUT    /api/auth/update       - Обновление информации аккаунта
+DELETE /api/auth/delete       - Удаление аккаунта
 ```
+
+#### Регистрация пользователя
+**Endpoint:** `POST /api/auth/register`
+
+**Заголовки:**
+```
+X-API-Key: <ваш_api_ключ>
+Content-Type: application/json
+```
+
+**Тело запроса:**
+```json
+{
+  "email": "user@example.com",
+  "display_name": "John Doe",
+  "password": "secure_password123"
+}
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "id": "a6fd363c-f8ec-4caf-85cb-d571017ac51e",
+  "email": "user@example.com",
+  "display_name": "John Doe",
+  "created_at": "2026-02-25T07:51:29.388313Z",
+  "updated_at": "2026-02-25T07:51:29.388324Z"
+}
+```
+
+#### Вход в систему
+**Endpoint:** `POST /api/auth/login`
+
+**Заголовки:**
+```
+X-API-Key: <ваш_api_ключ>
+Content-Type: application/json
+```
+
+**Тело запроса:**
+```json
+{
+  "email": "user@example.com",
+  "password": "secure_password123"
+}
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 1800,
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### Обновление токена
+**Endpoint:** `POST /api/auth/refresh`
+
+**Заголовки:**
+```
+X-API-Key: <ваш_api_ключ>
+Content-Type: application/json
+```
+
+**Тело запроса:**
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 1800,
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### Получение информации о текущем пользователе
+**Endpoint:** `GET /api/auth/me`
+
+**Заголовки:**
+```
+X-API-Key: <ваш_api_ключ>
+Authorization: Bearer <access_token>
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "id": "a6fd363c-f8ec-4caf-85cb-d571017ac51e",
+  "email": "user@example.com",
+  "display_name": "John Doe",
+  "created_at": "2026-02-25T07:51:29.388313Z",
+  "updated_at": "2026-02-25T07:51:29.388324Z"
+}
+```
+
+#### Обновление информации аккаунта
+**Endpoint:** `PUT /api/auth/update`
+
+**Заголовки:**
+```
+X-API-Key: <ваш_api_ключ>
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Тело запроса (оба поля опциональны):**
+```json
+{
+  "display_name": "Updated Name",
+  "password": "new_password123"
+}
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "id": "a6fd363c-f8ec-4caf-85cb-d571017ac51e",
+  "email": "user@example.com",
+  "display_name": "Updated Name",
+  "created_at": "2026-02-25T07:51:29.388313Z",
+  "updated_at": "2026-02-25T08:00:00.000000Z"
+}
+```
+
+#### Удаление аккаунта
+**Endpoint:** `DELETE /api/auth/delete`
+
+**Заголовки:**
+```
+X-API-Key: <ваш_api_ключ>
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Тело запроса:**
+```json
+{
+  "confirm": true
+}
+```
+
+**Ответ (200 OK):**
+```json
+{
+  "message": "Account deleted successfully"
+}
+```
+
+#### Примечания по аутентификации:
+1. **API Key:** Все запросы требуют заголовок `X-API-Key` с валидным ключом API
+2. **JWT Токены:** Access token действителен 30 минут, refresh token - 7 дней
+3. **Авторизация:** Защищенные эндпоинты требуют заголовок `Authorization: Bearer <access_token>`
+4. **Поле email:** Для входа используется поле `email`, а не `username`
 
 ### Упражнения
 
@@ -307,6 +470,219 @@ alembic downgrade -1
 3. CORS настроен для разрешенных origins
 4. Все запросы к базе данных используют параметризованные запросы
 5. Чувствительные данные не логируются
+
+## Полный справочник API
+
+### Аутентификация
+| Метод | Endpoint | Описание | Требует токен |
+|-------|----------|----------|---------------|
+| POST | `/api/auth/register` | Регистрация нового пользователя | ❌ |
+| POST | `/api/auth/login` | Вход в систему (получение токенов) | ❌ |
+| POST | `/api/auth/refresh` | Обновление access token | ❌ |
+| GET | `/api/auth/me` | Получение информации о текущем пользователе | ✅ |
+| PUT | `/api/auth/update` | Обновление информации аккаунта | ✅ |
+| DELETE | `/api/auth/delete` | Удаление аккаунта | ✅ |
+
+### Упражнения
+| Метод | Endpoint | Описание | Требует токен |
+|-------|----------|----------|---------------|
+| GET | `/api/exercises/global` | Получение глобальных упражнений | ❌ |
+| GET | `/api/exercises/global/{id}` | Получение конкретного глобального упражнения | ❌ |
+| GET | `/api/exercises/user` | Получение пользовательских упражнений | ✅ |
+| POST | `/api/exercises/user` | Создание пользовательского упражнения | ✅ |
+| PUT | `/api/exercises/user/{id}` | Обновление пользовательского упражнения | ✅ |
+| DELETE | `/api/exercises/user/{id}` | Удаление пользовательского упражнения | ✅ |
+| POST | `/api/exercises/user/{id}/restore` | Восстановление удаленного упражнения | ✅ |
+
+### Шаблоны тренировок
+| Метод | Endpoint | Описание | Требует токен |
+|-------|----------|----------|---------------|
+| GET | `/api/templates` | Получение шаблонов тренировок | ✅ |
+| GET | `/api/templates/{id}` | Получение конкретного шаблона | ✅ |
+| POST | `/api/templates` | Создание шаблона тренировки | ✅ |
+| PUT | `/api/templates/{id}` | Обновление шаблона тренировки | ✅ |
+| DELETE | `/api/templates/{id}` | Удаление шаблона тренировки | ✅ |
+| POST | `/api/templates/{id}/duplicate` | Дублирование шаблона | ✅ |
+| GET | `/api/templates/shared/{code}` | Получение шаблона по share code | ❌ |
+
+### Сессии тренировок
+| Метод | Endpoint | Описание | Требует токен |
+|-------|----------|----------|---------------|
+| GET | `/api/sessions` | Получение сессий тренировок | ✅ |
+| GET | `/api/sessions/{id}` | Получение конкретной сессии | ✅ |
+| POST | `/api/sessions` | Создание сессии тренировки | ✅ |
+| PUT | `/api/sessions/{id}` | Обновление сессии тренировки | ✅ |
+| DELETE | `/api/sessions/{id}` | Удаление сессии тренировки | ✅ |
+| GET | `/api/sessions/{id}/sets` | Получение подходов сессии | ✅ |
+| POST | `/api/sessions/{id}/sets` | Добавление подхода к сессии | ✅ |
+
+### Системные endpoints
+| Метод | Endpoint | Описание | Требует токен |
+|-------|----------|----------|---------------|
+| GET | `/api/health` | Проверка здоровья системы | ❌ |
+| GET | `/api/` | Корневой endpoint (информация о API) | ❌ |
+| POST | `/api/status` | Создание статус-чека | ✅ |
+| GET | `/api/status` | Получение статус-чеков | ✅ |
+| POST | `/api/waitlist` | Добавление в лист ожидания | ❌ |
+| GET | `/api/waitlist` | Получение листа ожидания (админ) | ✅ |
+
+## Примеры использования
+
+### Полный цикл работы с пользователем
+
+```python
+import requests
+
+BASE_URL = "https://hawklets.com/api"
+API_KEY = "ваш_api_ключ"
+
+# 1. Регистрация
+response = requests.post(
+    f"{BASE_URL}/auth/register",
+    json={
+        "email": "test@example.com",
+        "display_name": "Test User",
+        "password": "TestPassword123!"
+    },
+    headers={"X-API-Key": API_KEY}
+)
+user_data = response.json()
+
+# 2. Вход
+response = requests.post(
+    f"{BASE_URL}/auth/login",
+    json={
+        "email": "test@example.com",
+        "password": "TestPassword123!"
+    },
+    headers={"X-API-Key": API_KEY}
+)
+tokens = response.json()
+access_token = tokens["access_token"]
+refresh_token = tokens["refresh_token"]
+
+# 3. Получение информации о пользователе
+response = requests.get(
+    f"{BASE_URL}/auth/me",
+    headers={
+        "X-API-Key": API_KEY,
+        "Authorization": f"Bearer {access_token}"
+    }
+)
+user_info = response.json()
+
+# 4. Обновление аккаунта
+response = requests.put(
+    f"{BASE_URL}/auth/update",
+    json={"display_name": "Updated Name"},
+    headers={
+        "X-API-Key": API_KEY,
+        "Authorization": f"Bearer {access_token}"
+    }
+)
+updated_user = response.json()
+
+# 5. Обновление токена
+response = requests.post(
+    f"{BASE_URL}/auth/refresh",
+    json={"refresh_token": refresh_token},
+    headers={"X-API-Key": API_KEY}
+)
+new_tokens = response.json()
+
+# 6. Удаление аккаунта
+response = requests.delete(
+    f"{BASE_URL}/auth/delete",
+    json={"confirm": True},
+    headers={
+        "X-API-Key": API_KEY,
+        "Authorization": f"Bearer {access_token}"
+    }
+)
+deletion_result = response.json()
+```
+
+### Работа с упражнениями
+
+```python
+# Получение глобальных упражнений
+response = requests.get(
+    f"{BASE_URL}/exercises/global",
+    headers={"X-API-Key": API_KEY}
+)
+exercises = response.json()
+
+# Создание пользовательского упражнения
+response = requests.post(
+    f"{BASE_URL}/exercises/user",
+    json={
+        "name": "Custom Exercise",
+        "muscle_groups": ["chest", "shoulders"],
+        "equipment": "dumbbells"
+    },
+    headers={
+        "X-API-Key": API_KEY,
+        "Authorization": f"Bearer {access_token}"
+    }
+)
+custom_exercise = response.json()
+```
+
+### Работа с шаблонами тренировок
+
+```python
+# Создание шаблона
+response = requests.post(
+    f"{BASE_URL}/templates",
+    json={
+        "title": "Push Day",
+        "description": "Chest and triceps workout",
+        "visibility": "private",
+        "items": [
+            {
+                "exercise_id": "exercise_uuid",
+                "order_index": 0,
+                "target_sets": 3,
+                "target_reps_min": 8,
+                "target_reps_max": 12,
+                "rest_sec": 90
+            }
+        ]
+    },
+    headers={
+        "X-API-Key": API_KEY,
+        "Authorization": f"Bearer {access_token}"
+    }
+)
+template = response.json()
+```
+
+## Часто задаваемые вопросы (FAQ)
+
+### Q: Как получить API ключ?
+**A:** API ключ предоставляется администратором системы. Для разработки используйте ключ из `.env` файла.
+
+### Q: Почему запрос возвращает 401 ошибку?
+**A:** Возможные причины:
+1. Отсутствует или неверный заголовок `X-API-Key`
+2. Истек срок действия access token
+3. Неверный refresh token
+4. Пользователь удален или заблокирован
+
+### Q: Как обновить истекший токен?
+**A:** Используйте endpoint `/api/auth/refresh` с валидным refresh token.
+
+### Q: Какие поля обязательны при регистрации?
+**A:** Обязательные поля: `email`, `display_name`, `password`.
+
+### Q: Как удалить свой аккаунт?
+**A:** Используйте endpoint `DELETE /api/auth/delete` с заголовком Authorization и телом `{"confirm": true}`.
+
+### Q: Поддерживается ли пагинация?
+**A:** Да, многие endpoints поддерживают пагинацию через параметры `page` и `page_size`.
+
+### Q: Как получить общие упражнения?
+**A:** Используйте `GET /api/exercises/global` - этот endpoint не требует аутентификации.
 
 ## Дальнейшее развитие
 
