@@ -26,10 +26,56 @@ except ImportError:
 # Конфигурация
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'hawklets')
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@hawklets.com')
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'nikita')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'kodfogmjtnjkfgd4534fkmfdg4534')
+
+# Получение данных администратора из переменных окружения или запрос у пользователя
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 ADMIN_FULL_NAME = os.environ.get('ADMIN_FULL_NAME', 'System Administrator')
+
+def prompt_for_admin_credentials():
+    """Запрашивает данные администратора у пользователя"""
+    global ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_FULL_NAME
+    
+    print("\n" + "="*50)
+    print("Настройка администратора")
+    print("="*50)
+    
+    if not ADMIN_EMAIL:
+        ADMIN_EMAIL = input("Email администратора [admin@hawklets.com]: ").strip()
+        if not ADMIN_EMAIL:
+            ADMIN_EMAIL = "admin@hawklets.com"
+    
+    if not ADMIN_USERNAME:
+        ADMIN_USERNAME = input("Имя пользователя [admin]: ").strip()
+        if not ADMIN_USERNAME:
+            ADMIN_USERNAME = "admin"
+    
+    if not ADMIN_PASSWORD:
+        import getpass
+        ADMIN_PASSWORD = getpass.getpass("Пароль администратора (не будет отображаться): ").strip()
+        if not ADMIN_PASSWORD:
+            print("Ошибка: Пароль обязателен.")
+            sys.exit(1)
+        
+        # Подтверждение пароля
+        confirm_password = getpass.getpass("Подтвердите пароль: ").strip()
+        if ADMIN_PASSWORD != confirm_password:
+            print("Ошибка: Пароли не совпадают.")
+            sys.exit(1)
+    
+    if not ADMIN_FULL_NAME or ADMIN_FULL_NAME == 'System Administrator':
+        full_name = input("Полное имя администратора [System Administrator]: ").strip()
+        if full_name:
+            ADMIN_FULL_NAME = full_name
+        else:
+            ADMIN_FULL_NAME = "System Administrator"
+    
+    print(f"\nБудут использованы следующие данные:")
+    print(f"  Email: {ADMIN_EMAIL}")
+    print(f"  Имя пользователя: {ADMIN_USERNAME}")
+    print(f"  Полное имя: {ADMIN_FULL_NAME}")
+    print("="*50 + "\n")
 
 def get_password_hash(password: str) -> str:
     """Хеширует пароль с использованием bcrypt или простого хеша"""
@@ -144,6 +190,9 @@ if __name__ == "__main__":
     print("="*50)
     print("Создание администратора по умолчанию для Hawklets")
     print("="*50)
+    
+    # Запрашиваем данные администратора, если не заданы через переменные окружения
+    prompt_for_admin_credentials()
     
     if MONGO_URL == 'mongodb://localhost:27017':
         print("Используется MongoDB по умолчанию (localhost)")

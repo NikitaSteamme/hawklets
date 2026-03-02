@@ -8,10 +8,19 @@ import requests
 import json
 import sys
 import time
+import os
 
 # Configuration
 BASE_URL = "https://hawklets.com/api"
-API_KEY = "51e93a68b99c61732b0920819f679e98491b751456e672e841a52536dcf0c7b1"
+API_KEY = os.environ.get("API_KEY")
+
+if not API_KEY:
+    print("API_KEY environment variable is not set.")
+    print("Please set API_KEY environment variable or enter it now:")
+    API_KEY = input("API Key: ").strip()
+    if not API_KEY:
+        print("Error: API Key is required.")
+        sys.exit(1)
 
 def make_request(method, endpoint, data=None, headers=None):
     """Make HTTP request with API key header."""
