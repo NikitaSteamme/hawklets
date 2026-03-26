@@ -7,7 +7,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Import screens
 import DashboardScreen from './src/screens/DashboardScreen';
-import ProgramsScreen from './src/screens/ProgramsScreen';
+import WorkoutsScreen from './src/screens/ProgramsScreen';
 import ProgressScreen from './src/screens/ProgressScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
@@ -174,7 +174,7 @@ export default function App() {
                 let iconName;
                 if (route.name === 'Dashboard') {
                   iconName = focused ? 'home' : 'home-outline';
-                } else if (route.name === 'Programs') {
+                } else if (route.name === 'Workouts') {
                   iconName = focused ? 'barbell' : 'barbell-outline';
                 } else if (route.name === 'Progress') {
                   iconName = focused ? 'stats-chart' : 'stats-chart-outline';
@@ -193,7 +193,7 @@ export default function App() {
             <Tab.Screen name="Dashboard">
               {() => <DashboardScreen currentUser={currentUser} />}
             </Tab.Screen>
-            <Tab.Screen name="Programs" component={ProgramsScreen} />
+            <Tab.Screen name="Workouts" component={WorkoutsScreen} />
             <Tab.Screen name="Progress" component={ProgressStack} />
             <Tab.Screen name="Community" component={CommunityScreen} />
             <Tab.Screen name="Account">

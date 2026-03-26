@@ -9,26 +9,177 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ProgramService from '../services/ProgramService';
 import CreateProgramModal from '../components/CreateProgramModal';
 
-const ProgramsScreen = () => {
-  const [activeProgram, setActiveProgram] = useState(0);
-  const [programs, setPrograms] = useState([]);
+// ── Create Routine Modal ─────────────────────────────────────────────────────
+
+function CreateRoutineModal({ visible, workouts, onClose, onSave }) {
+  const [routineName, setRoutineName] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  useEffect(() => {
+    if (visible) {
+      setRoutineName('');
+      setSelectedIds([]);
+    }
+  }, [visible]);
+
+  const toggleWorkout = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSave = () => {
+    if (!routineName.trim()) {
+      Alert.alert('Validation', 'Please enter a routine name');
+      return;
+    }
+    if (selectedIds.length === 0) {
+      Alert.alert('Validation', 'Please select at least one workout');
+      return;
+    }
+    const selectedWorkouts = workouts.filter(w => selectedIds.includes(w.id || w._id));
+    onSave({ name: routineName.trim(), workouts: selectedWorkouts });
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={rmStyles.container}>
+        <View style={rmStyles.header}>
+          <TouchableOpacity onPress={onClose} style={rmStyles.iconBtn}>
+            <Ionicons name="close" size={28} color="#333" />
+          </TouchableOpacity>
+          <Text style={rmStyles.headerTitle}>New Routine</Text>
+          <TouchableOpacity onPress={handleSave} style={rmStyles.iconBtn}>
+            <Ionicons name="checkmark-sharp" size={28} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={rmStyles.body} showsVerticalScrollIndicator={false}>
+          <Text style={rmStyles.label}>Routine Name</Text>
+          <TextInput
+            style={rmStyles.input}
+            placeholder="e.g. 5-Day Power Block"
+            value={routineName}
+            onChangeText={setRoutineName}
+          />
+
+          <Text style={[rmStyles.label, { marginTop: 24 }]}>Add Workouts</Text>
+          {workouts.length === 0 ? (
+            <View style={rmStyles.emptyWorkouts}>
+              <Text style={rmStyles.emptyWorkoutsText}>
+                No workouts yet. Create some workouts first.
+              </Text>
+            </View>
+          ) : (
+            workouts.map((w) => {
+              const id = w.id || w._id;
+              const selected = selectedIds.includes(id);
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={[rmStyles.workoutRow, selected && rmStyles.workoutRowSelected]}
+                  onPress={() => toggleWorkout(id)}
+                >
+                  <View style={rmStyles.workoutRowLeft}>
+                    <Ionicons
+                      name={selected ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={selected ? '#4CAF50' : '#ccc'}
+                    />
+                    <Text style={[rmStyles.workoutRowText, selected && rmStyles.workoutRowTextSelected]}>
+                      {w.title}
+                    </Text>
+                  </View>
+                  <Text style={rmStyles.workoutRowMeta}>
+                    {w.items?.length || 0} exercises
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
+          <View style={{ height: 80 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const rmStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  iconBtn: { padding: 8 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold' },
+  body: { padding: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  emptyWorkouts: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+  },
+  emptyWorkoutsText: { color: '#999', fontStyle: 'italic' },
+  workoutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 10,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+  },
+  workoutRowSelected: { borderColor: '#4CAF50', backgroundColor: '#f1f8f1' },
+  workoutRowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  workoutRowText: { fontSize: 16, color: '#333', marginLeft: 12 },
+  workoutRowTextSelected: { color: '#2E7D32', fontWeight: '600' },
+  workoutRowMeta: { fontSize: 12, color: '#999' },
+});
+
+// ── Workouts Screen ──────────────────────────────────────────────────────────
+
+const WorkoutsScreen = () => {
+  const [workouts, setWorkouts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const fetchPrograms = async () => {
+  const [routines, setRoutines] = useState([]);
+
+  const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState(false);
+  const [isRoutineModalVisible, setIsRoutineModalVisible] = useState(false);
+
+  const fetchWorkouts = async () => {
     try {
       const response = await ProgramService.getPrograms(1, 100);
-      setPrograms(response.items || []);
+      setWorkouts(response.items || []);
     } catch (error) {
-      console.log('Error fetching programs:', error);
+      console.log('Error fetching workouts:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -36,58 +187,56 @@ const ProgramsScreen = () => {
   };
 
   useEffect(() => {
-    fetchPrograms();
+    fetchWorkouts();
   }, []);
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    fetchPrograms();
+    fetchWorkouts();
   };
 
-  // Helper to assign reliable colors and icons based on index
   const getStyling = (index) => {
-    const styles = [
+    const palette = [
       { color: '#4CAF50', icon: 'barbell' },
       { color: '#2196F3', icon: 'flash' },
       { color: '#9C27B0', icon: 'body' },
       { color: '#FF9800', icon: 'trending-up' },
     ];
-    return styles[index % styles.length];
+    return palette[index % palette.length];
   };
 
-  const renderProgramCard = ({ item, index }) => {
-    const styleRef = getStyling(index);
-    const exerciseCount = item.items ? item.items.length : 0;
-    
+  const handleRoutineCreated = (routine) => {
+    setRoutines(prev => [...prev, routine]);
+  };
+
+  const activeRoutine = routines[0] ?? null;
+
+  const renderWorkoutCard = ({ item, index }) => {
+    const s = getStyling(index);
+    const exerciseCount = item.items?.length || 0;
     return (
-      <TouchableOpacity
-        style={[styles.programCard, activeProgram === index && { borderColor: styleRef.color }]}
-        onPress={() => setActiveProgram(index)}
-      >
+      <TouchableOpacity style={styles.workoutCard}>
         <LinearGradient
-          colors={[styleRef.color + '20', styleRef.color + '40']}
-          style={styles.programGradient}
+          colors={[s.color + '20', s.color + '40']}
+          style={styles.workoutGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <View style={styles.programHeader}>
-            <View style={[styles.programIcon, { backgroundColor: styleRef.color + '30' }]}>
-              <Ionicons name={styleRef.icon} size={24} color={styleRef.color} />
+          <View style={styles.workoutHeader}>
+            <View style={[styles.workoutIcon, { backgroundColor: s.color + '30' }]}>
+              <Ionicons name={s.icon} size={24} color={s.color} />
             </View>
-            <View style={styles.programInfo}>
-              <Text style={styles.programTitle}>{item.title}</Text>
-              <Text style={styles.programDescription}>{item.description || 'Custom User Program'}</Text>
+            <View style={styles.workoutInfo}>
+              <Text style={styles.workoutTitle}>{item.title}</Text>
+              <Text style={styles.workoutDescription}>
+                {item.description || 'Custom workout'}
+              </Text>
             </View>
           </View>
-
-          <View style={styles.programDetails}>
+          <View style={styles.workoutDetails}>
             <View style={styles.detailItem}>
               <Ionicons name="documents-outline" size={16} color="#666" />
               <Text style={styles.detailText}>{exerciseCount} Exercises</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Ionicons name="speedometer-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>Custom</Text>
             </View>
           </View>
         </LinearGradient>
@@ -97,17 +246,20 @@ const ProgramsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
       >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>My Programs</Text>
-            <Text style={styles.subtitle}>Track and manage your training plans</Text>
+            <Text style={styles.title}>My Routines</Text>
+            <Text style={styles.subtitle}>Manage your training routines</Text>
           </View>
-          <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setIsRoutineModalVisible(true)}
+          >
             <Ionicons name="add" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -116,44 +268,62 @@ const ProgramsScreen = () => {
           <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 50 }} />
         ) : (
           <>
-            {/* Active Program Highlight */}
-            {programs.length > 0 && programs[activeProgram] && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Active Program</Text>
-                <LinearGradient
-                  colors={['#4CAF50', '#2E7D32']}
-                  style={styles.activeProgramHighlight}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <View style={styles.activeProgramContent}>
-                    <View>
-                      <Text style={styles.activeProgramTitle}>{programs[activeProgram].title}</Text>
-                      <Text style={styles.activeProgramSubtitle}>
-                        {programs[activeProgram].items?.length || 0} Exercises Built
+            {/* Active Routine */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Active Routine</Text>
+              <LinearGradient
+                colors={['#4CAF50', '#2E7D32']}
+                style={styles.activeRoutineCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.activeRoutineContent}>
+                  <View>
+                    <Text style={styles.activeRoutineName}>
+                      {activeRoutine ? activeRoutine.name : 'No active routine'}
+                    </Text>
+                    <View style={styles.streakRow}>
+                      <Ionicons name="flame" size={16} color="rgba(255,255,255,0.9)" />
+                      <Text style={styles.activeRoutineStreak}>
+                        Current Streak: 999 days
                       </Text>
                     </View>
-                    <TouchableOpacity style={styles.resumeButton}>
-                      <Text style={styles.resumeButtonText}>Start</Text>
-                    </TouchableOpacity>
                   </View>
-                </LinearGradient>
-              </View>
-            )}
+                  {!activeRoutine && (
+                    <TouchableOpacity
+                      style={styles.createInlineBtn}
+                      onPress={() => setIsRoutineModalVisible(true)}
+                    >
+                      <Text style={styles.createInlineBtnText}>Create</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </LinearGradient>
+            </View>
 
-            {/* All Programs */}
+            {/* Available Workouts */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Available Programs</Text>
+                <Text style={styles.sectionTitle}>Available Workouts</Text>
+                <TouchableOpacity
+                  style={styles.newWorkoutBtn}
+                  onPress={() => setIsWorkoutModalVisible(true)}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={styles.newWorkoutBtnText}>New Workout</Text>
+                </TouchableOpacity>
               </View>
-              {programs.length === 0 ? (
-                <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ color: '#666' }}>No programs yet. Tap the + to create one!</Text>
+
+              {workouts.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>
+                    No workouts yet. Tap "New Workout" to create one!
+                  </Text>
                 </View>
               ) : (
                 <FlatList
-                  data={programs}
-                  renderItem={renderProgramCard}
+                  data={workouts}
+                  renderItem={renderWorkoutCard}
                   keyExtractor={(item) => item.id || item._id || Math.random().toString()}
                   scrollEnabled={false}
                 />
@@ -163,11 +333,17 @@ const ProgramsScreen = () => {
         )}
       </ScrollView>
 
-      {/* Create Program Modal */}
-      <CreateProgramModal 
-        visible={isModalVisible} 
-        onClose={() => setIsModalVisible(false)} 
-        onSaveSuccess={onRefresh} 
+      <CreateProgramModal
+        visible={isWorkoutModalVisible}
+        onClose={() => setIsWorkoutModalVisible(false)}
+        onSaveSuccess={onRefresh}
+      />
+
+      <CreateRoutineModal
+        visible={isRoutineModalVisible}
+        workouts={workouts}
+        onClose={() => setIsRoutineModalVisible(false)}
+        onSave={handleRoutineCreated}
       />
     </SafeAreaView>
   );
@@ -199,24 +375,70 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   section: { paddingHorizontal: 24, marginBottom: 24 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  activeProgramHighlight: { borderRadius: 16, padding: 20 },
-  activeProgramContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  activeProgramTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
-  activeProgramSubtitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.9)', marginTop: 4 },
-  resumeButton: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-  resumeButtonText: { color: '#4CAF50', fontWeight: 'bold', fontSize: 14 },
-  programCard: { marginBottom: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
-  programGradient: { padding: 20 },
-  programHeader: { flexDirection: 'row', marginBottom: 16 },
-  programIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  programInfo: { flex: 1 },
-  programTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  programDescription: { fontSize: 14, color: '#666', lineHeight: 20 },
-  programDetails: { flexDirection: 'row', marginBottom: 8 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  activeRoutineCard: { borderRadius: 16, padding: 20 },
+  activeRoutineContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activeRoutineName: { fontSize: 20, fontWeight: 'bold', color: 'white', marginBottom: 6 },
+  streakRow: { flexDirection: 'row', alignItems: 'center' },
+  activeRoutineStreak: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginLeft: 6 },
+  createInlineBtn: {
+    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  createInlineBtnText: { color: '#4CAF50', fontWeight: 'bold', fontSize: 14 },
+  newWorkoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  newWorkoutBtnText: { color: '#fff', fontWeight: 'bold', marginLeft: 4, fontSize: 14 },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  emptyStateText: { color: '#666', textAlign: 'center' },
+  workoutCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  workoutGradient: { padding: 20 },
+  workoutHeader: { flexDirection: 'row', marginBottom: 16 },
+  workoutIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  workoutInfo: { flex: 1 },
+  workoutTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
+  workoutDescription: { fontSize: 14, color: '#666', lineHeight: 20 },
+  workoutDetails: { flexDirection: 'row' },
   detailItem: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
   detailText: { fontSize: 14, color: '#666', marginLeft: 6 },
 });
 
-export default ProgramsScreen;
+export default WorkoutsScreen;

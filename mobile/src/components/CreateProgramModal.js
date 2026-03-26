@@ -91,7 +91,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
 
   const handleSave = async () => {
     if (!title) {
-      Alert.alert('Validation Error', 'Please enter a program title');
+      Alert.alert('Validation Error', 'Please enter a workout title');
       return;
     }
     
@@ -127,11 +127,11 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
       });
 
       await ProgramService.createProgram(title, description, itemsPayload);
-      Alert.alert('Success', 'Program created successfully!');
+      Alert.alert('Success', 'Workout created successfully!');
       onSaveSuccess();
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to create program: ' + error.message);
+      Alert.alert('Error', 'Failed to create workout: ' + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -161,7 +161,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
           <TouchableOpacity onPress={onClose} style={styles.iconButton}>
             <Ionicons name="close" size={28} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Program</Text>
+          <Text style={styles.headerTitle}>New Workout</Text>
           <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.iconButton}>
             <Ionicons name="checkmark-sharp" size={28} color="#4CAF50" />
           </TouchableOpacity>
@@ -228,11 +228,11 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
                    <Text style={{textAlign: 'center', marginTop: 20, color: '#999'}}>No exercises found for these filters.</Text>
                 )}
                 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.cancelPickerBtn}
                   onPress={() => setShowExercisePicker(false)}
                 >
-                  <Text style={styles.cancelPickerBtnText}>Back to Program</Text>
+                  <Text style={styles.cancelPickerBtnText}>Back to Workout</Text>
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -240,7 +240,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
         ) : (
           <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Program Title</Text>
+              <Text style={styles.label}>Workout Title</Text>
               <TextInput
                 style={styles.input}
                 placeholder="e.g. Full Body Smash"
