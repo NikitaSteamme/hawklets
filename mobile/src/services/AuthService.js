@@ -143,12 +143,14 @@ export const AuthService = {
   },
 
   // Update user account
-  updateAccount: async (displayName, password) => {
+  updateAccount: async ({ displayName, firstName, lastName, password } = {}) => {
     try {
       const updateData = {};
-      if (displayName) updateData.display_name = displayName;
-      if (password) updateData.password = password;
-      
+      if (displayName !== undefined) updateData.display_name = displayName;
+      if (firstName !== undefined) updateData.first_name = firstName;
+      if (lastName !== undefined) updateData.last_name = lastName;
+      if (password !== undefined) updateData.password = password;
+
       const response = await apiRequest('/auth/update', {
         method: 'PUT',
         data: updateData,

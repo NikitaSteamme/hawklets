@@ -49,6 +49,8 @@ class RefreshTokenRequest(BaseModel):
 class UserUpdate(BaseModel):
     """Модель для обновления пользователя"""
     display_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     password: Optional[str] = None
 
 class DeleteAccountRequest(BaseModel):
@@ -167,6 +169,8 @@ async def register(user_data: UserCreate, db: AsyncIOMotorDatabase = Depends(get
         id=user.id,
         email=user.email,
         display_name=user.display_name,
+        first_name=user.first_name,
+        last_name=user.last_name,
         created_at=user.created_at,
         updated_at=user.updated_at
     )
@@ -279,6 +283,8 @@ async def get_current_user_info(
         id=str(user["_id"]),
         email=user["email"],
         display_name=user.get("display_name", ""),
+        first_name=user.get("first_name"),
+        last_name=user.get("last_name"),
         created_at=user.get("created_at", datetime.now(timezone.utc)),
         updated_at=user.get("updated_at", datetime.now(timezone.utc))
     )
@@ -295,7 +301,13 @@ async def update_user(
     
     if update_data.display_name is not None:
         update_fields["display_name"] = update_data.display_name
-    
+
+    if update_data.first_name is not None:
+        update_fields["first_name"] = update_data.first_name
+
+    if update_data.last_name is not None:
+        update_fields["last_name"] = update_data.last_name
+
     if update_data.password is not None:
         update_fields["auth.password_hash"] = get_password_hash(update_data.password)
     
@@ -326,6 +338,8 @@ async def update_user(
         id=str(updated_user["_id"]),
         email=updated_user["email"],
         display_name=updated_user.get("display_name", ""),
+        first_name=updated_user.get("first_name"),
+        last_name=updated_user.get("last_name"),
         created_at=updated_user.get("created_at", datetime.now(timezone.utc)),
         updated_at=updated_user.get("updated_at", datetime.now(timezone.utc))
     )

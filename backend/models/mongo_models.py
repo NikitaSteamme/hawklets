@@ -8,6 +8,8 @@ class User(BaseDocument):
     """Модель пользователя"""
     email: EmailStr
     display_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     preferences: Dict[str, Any] = Field(default_factory=dict)
     auth: Optional[Dict[str, Any]] = None
     

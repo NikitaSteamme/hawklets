@@ -13,7 +13,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LineChart } from 'react-native-chart-kit';
 
-const DashboardScreen = () => {
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const getCurrentDateString = () => {
+  const now = new Date();
+  return `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
+};
+
+const DashboardScreen = ({ currentUser }) => {
   const [streak, setStreak] = useState(7);
   const [connectedDevice, setConnectedDevice] = useState(true);
   const [todaySteps, setTodaySteps] = useState(8452);
@@ -64,8 +79,12 @@ const DashboardScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good morning, Alex!</Text>
-            <Text style={styles.date}>Wednesday, January 22</Text>
+            <Text style={styles.greeting}>
+              {currentUser?.first_name
+                ? `${getGreeting()}, ${currentUser.first_name}!`
+                : `${getGreeting()}!`}
+            </Text>
+            <Text style={styles.date}>{getCurrentDateString()}</Text>
           </View>
           <TouchableOpacity style={styles.avatarContainer}>
             <Image

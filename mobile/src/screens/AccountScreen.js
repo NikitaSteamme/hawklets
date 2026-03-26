@@ -9,22 +9,25 @@ import {
   Image,
   Switch,
   Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AuthService from '../services/AuthService';
 
-const AccountScreen = ({ navigation, onLogout }) => {
+const AccountScreen = ({ navigation, onLogout, currentUser, onUserUpdate }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
-  const user = {
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    membership: 'Premium',
-    joinDate: 'January 2025',
-    avatar: require('../../assets/avatar.png'),
-  };
+  const displayName = currentUser
+    ? [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.display_name
+    : '—';
 
   const menuItems = [
     {
@@ -95,6 +98,15 @@ const AccountScreen = ({ navigation, onLogout }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <EditProfileModal
+        visible={editModalVisible}
+        currentUser={currentUser}
+        onClose={() => setEditModalVisible(false)}
+        onSaved={async () => {
+          setEditModalVisible(false);
+          if (onUserUpdate) await onUserUpdate();
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <LinearGradient
@@ -104,15 +116,12 @@ const AccountScreen = ({ navigation, onLogout }) => {
           end={{ x: 1, y: 0 }}
         >
           <View style={styles.profileContent}>
-            <Image source={user.avatar} style={styles.avatar} resizeMode="cover" />
+            <Image source={require('../../assets/avatar.png')} style={styles.avatar} resizeMode="cover" />
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
-              <View style={styles.membershipBadge}>
-                <Text style={styles.membershipText}>{user.membership}</Text>
-              </View>
+              <Text style={styles.userName}>{displayName}</Text>
+              <Text style={styles.userEmail}>{currentUser?.email || '—'}</Text>
             </View>
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={() => setEditModalVisible(true)}>
               <Ionicons name="pencil" size={20} color="#4CAF50" />
             </TouchableOpacity>
           </View>
@@ -444,6 +453,145 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     textAlign: 'center',
+  },
+});
+
+function EditProfileModal({ visible, currentUser, onClose, onSaved }) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync fields when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      setFirstName(currentUser?.first_name || '');
+      setLastName(currentUser?.last_name || '');
+    }
+  }, [visible, currentUser]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await AuthService.updateAccount({
+        firstName: firstName.trim() || null,
+        lastName: lastName.trim() || null,
+      });
+      await onSaved();
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={modalStyles.overlay}
+      >
+        <View style={modalStyles.sheet}>
+          <View style={modalStyles.header}>
+            <Text style={modalStyles.title}>Edit Profile</Text>
+            <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={modalStyles.label}>First name</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="Enter first name"
+            placeholderTextColor="#999"
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+          />
+
+          <Text style={modalStyles.label}>Last name</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="Enter last name"
+            placeholderTextColor="#999"
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+          />
+
+          <TouchableOpacity
+            style={[modalStyles.saveButton, isSaving && modalStyles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={modalStyles.saveButtonText}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 20,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

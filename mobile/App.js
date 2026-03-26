@@ -16,6 +16,7 @@ import RegistrationScreen from './src/screens/RegistrationScreen';
 import DeviceConnectionScreen from './src/screens/DeviceConnectionScreen';
 import TrainingAnalyticsScreen from './src/screens/TrainingAnalyticsScreen';
 import notificationsService from './src/services/NotificationsService';
+import AuthService from './src/services/AuthService';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -23,11 +24,17 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 // Account Stack Navigator
-function AccountStack({ onLogout }) {
+function AccountStack({ onLogout, currentUser, onUserUpdate }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="AccountMain">
-        {() => <AccountScreen onLogout={onLogout} />}
+        {() => (
+          <AccountScreen
+            onLogout={onLogout}
+            currentUser={currentUser}
+            onUserUpdate={onUserUpdate}
+          />
+        )}
       </Stack.Screen>
       <Stack.Screen name="DeviceConnection" component={DeviceConnectionScreen} />
     </Stack.Navigator>
@@ -48,6 +55,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showRegistration, setShowRegistration] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     checkLoginStatus();
@@ -71,12 +79,24 @@ export default function App() {
     };
   }, []);
 
+  const loadUserData = async () => {
+    try {
+      const user = await AuthService.getCurrentUser();
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  };
+
   const checkLoginStatus = async () => {
     try {
-      // Check for new token format (accessToken) first, then fallback to legacy token
       const accessToken = await AsyncStorage.getItem('accessToken');
       const legacyToken = await AsyncStorage.getItem('userToken');
-      setIsLoggedIn(!!accessToken || !!legacyToken);
+      const loggedIn = !!accessToken || !!legacyToken;
+      setIsLoggedIn(loggedIn);
+      if (loggedIn) {
+        await loadUserData();
+      }
     } catch (error) {
       console.error('Error checking login status:', error);
     } finally {
@@ -89,7 +109,8 @@ export default function App() {
     await AsyncStorage.setItem('accessToken', token);
     await AsyncStorage.setItem('userToken', token); // Legacy support
     setIsLoggedIn(true);
-    
+    await loadUserData();
+
     // Initialize notifications after login
     try {
       const permissionsGranted = await notificationsService.requestPermissions();
@@ -103,11 +124,15 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    // Remove all authentication tokens
     await AsyncStorage.removeItem('accessToken');
     await AsyncStorage.removeItem('refreshToken');
-    await AsyncStorage.removeItem('userToken'); // Legacy token
+    await AsyncStorage.removeItem('userToken');
+    setCurrentUser(null);
     setIsLoggedIn(false);
+  };
+
+  const handleUserUpdate = async () => {
+    await loadUserData();
   };
 
   if (isLoading) {
@@ -165,12 +190,20 @@ export default function App() {
               headerShown: false,
             })}
           >
-            <Tab.Screen name="Dashboard" component={DashboardScreen} />
+            <Tab.Screen name="Dashboard">
+              {() => <DashboardScreen currentUser={currentUser} />}
+            </Tab.Screen>
             <Tab.Screen name="Programs" component={ProgramsScreen} />
             <Tab.Screen name="Progress" component={ProgressStack} />
             <Tab.Screen name="Community" component={CommunityScreen} />
             <Tab.Screen name="Account">
-              {() => <AccountStack onLogout={handleLogout} />}
+              {() => (
+                <AccountStack
+                  onLogout={handleLogout}
+                  currentUser={currentUser}
+                  onUserUpdate={handleUserUpdate}
+                />
+              )}
             </Tab.Screen>
           </Tab.Navigator>
         )}
