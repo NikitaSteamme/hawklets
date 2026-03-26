@@ -3,11 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hawklets.com/api';
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'your-api-key-change-in-production';
 
-// Helper function for API requests
 const apiRequest = async (endpoint, options = {}) => {
   try {
-    const token = await AsyncStorage.getItem('userToken');
-    
+    const token = await AsyncStorage.getItem('accessToken') || await AsyncStorage.getItem('userToken');
+
     const headers = {
       'Content-Type': 'application/json',
       'X-API-Key': API_KEY,
@@ -21,12 +20,12 @@ const apiRequest = async (endpoint, options = {}) => {
     });
 
     const data = await response.json().catch(() => ({}));
-    
+
     if (!response.ok) {
       throw {
         status: response.status,
         message: data.detail || data.message || 'API request failed',
-        data
+        data,
       };
     }
 
@@ -40,41 +39,80 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 };
 
-const ProgramService = {
-  // --- Workout Templates (Programs) ---
-  
-  /**
-   * Fetch user's workout templates (programs)
-   */
-  getPrograms: async (page = 1, pageSize = 20) => {
-    return await apiRequest(`/templates?page=${page}&page_size=${pageSize}`, {
-      method: 'GET',
-    });
+const WorkoutService = {
+  // ── Workouts ────────────────────────────────────────────────────────────────
+
+  getWorkouts: async (page = 1, pageSize = 100) => {
+    return apiRequest(`/workouts?page=${page}&page_size=${pageSize}`);
   },
 
-  /**
-   * Create a new workout template
-   */
-  createProgram: async (title, description, items) => {
-    return await apiRequest('/templates', {
+  getWorkout: async (workoutId) => {
+    return apiRequest(`/workouts/${workoutId}`);
+  },
+
+  createWorkout: async (title, description, items) => {
+    return apiRequest('/workouts', {
       method: 'POST',
-      body: JSON.stringify({
-        title,
-        description,
-        visibility: 'private',
-        items,
-      }),
+      body: JSON.stringify({ title, description, visibility: 'private', items }),
     });
   },
 
-  /**
-   * Fetch global exercises from the database
-   */
-  getGlobalExercises: async () => {
-    return await apiRequest('/exercises/global', {
-      method: 'GET',
+  updateWorkout: async (workoutId, fields) => {
+    return apiRequest(`/workouts/${workoutId}`, {
+      method: 'PUT',
+      body: JSON.stringify(fields),
     });
+  },
+
+  deleteWorkout: async (workoutId) => {
+    return apiRequest(`/workouts/${workoutId}`, { method: 'DELETE' });
+  },
+
+  duplicateWorkout: async (workoutId) => {
+    return apiRequest(`/workouts/${workoutId}/duplicate`, { method: 'POST' });
+  },
+
+  getWorkoutByShareCode: async (shareCode) => {
+    return apiRequest(`/workouts/shared/${shareCode}`);
+  },
+
+  // ── Routines ─────────────────────────────────────────────────────────────────
+
+  getRoutines: async () => {
+    return apiRequest('/routines');
+  },
+
+  getRoutine: async (routineId) => {
+    return apiRequest(`/routines/${routineId}`);
+  },
+
+  createRoutine: async (name, workoutIds) => {
+    return apiRequest('/routines', {
+      method: 'POST',
+      body: JSON.stringify({ name, workout_ids: workoutIds }),
+    });
+  },
+
+  updateRoutine: async (routineId, fields) => {
+    return apiRequest(`/routines/${routineId}`, {
+      method: 'PUT',
+      body: JSON.stringify(fields),
+    });
+  },
+
+  setActiveRoutine: async (routineId) => {
+    return apiRequest(`/routines/${routineId}/set-active`, { method: 'POST' });
+  },
+
+  deleteRoutine: async (routineId) => {
+    return apiRequest(`/routines/${routineId}`, { method: 'DELETE' });
+  },
+
+  // ── Exercises ────────────────────────────────────────────────────────────────
+
+  getGlobalExercises: async () => {
+    return apiRequest('/exercises/global');
   },
 };
 
-export default ProgramService;
+export default WorkoutService;

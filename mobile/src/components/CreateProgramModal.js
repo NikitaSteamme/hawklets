@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import ProgramService from '../services/ProgramService';
+import WorkoutService from '../services/ProgramService';
 
 const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
   const [title, setTitle] = useState('');
@@ -49,7 +49,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
   const fetchExercises = async () => {
     try {
       setIsLoading(true);
-      const data = await ProgramService.getGlobalExercises();
+      const data = await WorkoutService.getGlobalExercises();
       setAvailableExercises(data || []);
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch exercises: ' + error.message);
@@ -126,7 +126,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
         }
       });
 
-      await ProgramService.createProgram(title, description, itemsPayload);
+      await WorkoutService.createWorkout(title, description, itemsPayload);
       Alert.alert('Success', 'Workout created successfully!');
       onSaveSuccess();
       onClose();

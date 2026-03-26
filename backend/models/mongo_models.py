@@ -91,21 +91,35 @@ class TemplateItem(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class WorkoutTemplate(BaseDocument, OwnerMixin):
-    """Шаблон тренировки"""
+class Workout(BaseDocument, OwnerMixin):
+    """Workout — набор упражнений для одной тренировки (бывший WorkoutTemplate)"""
     title: str
     description: Optional[str] = None
     visibility: str = Field(default="private")  # private/unlisted/public
     share_code: Optional[str] = None
     revision: int = Field(default=1)
     items: List[TemplateItem] = Field(default_factory=list)
-    
+
     class Config:
-        collection_name = "workout_templates"
+        collection_name = "workouts"
         indexes = [
             {"key": [("owner_id", 1), ("updated_at", -1)]},
             {"key": [("share_code", 1)], "sparse": True},
             {"key": [("visibility", 1)]}
+        ]
+
+
+class Routine(BaseDocument, OwnerMixin):
+    """Routine — именованный набор Workouts (минимум 1)"""
+    name: str
+    workout_ids: List[str] = Field(default_factory=list)
+    is_active: bool = Field(default=False)
+
+    class Config:
+        collection_name = "routines"
+        indexes = [
+            {"key": [("owner_id", 1), ("updated_at", -1)]},
+            {"key": [("owner_id", 1), ("is_active", 1)]},
         ]
 
 

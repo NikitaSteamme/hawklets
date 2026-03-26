@@ -12,39 +12,37 @@ if str(parent_dir) not in sys.path:
 
 try:
     from backend.models import (
-        WorkoutTemplateCreate,
-        WorkoutTemplateUpdate,
+        WorkoutCreate,
+        WorkoutUpdate,
         TemplateItemCreate,
         PaginationParams,
         PaginatedResponse
     )
-    from backend.models.mongo_models import WorkoutTemplate, TemplateItem
+    from backend.models.mongo_models import Workout, TemplateItem
     from backend.routers.auth import get_current_user
 except ImportError:
-    # If backend.models doesn't work, try direct import
     try:
         from models import (
-            WorkoutTemplateCreate,
-            WorkoutTemplateUpdate,
+            WorkoutCreate,
+            WorkoutUpdate,
             TemplateItemCreate,
             PaginationParams,
             PaginatedResponse
         )
-        from models.mongo_models import WorkoutTemplate, TemplateItem
+        from models.mongo_models import Workout, TemplateItem
         from routers.auth import get_current_user
     except ImportError:
-        # Last resort: try relative import
         from ..models import (
-            WorkoutTemplateCreate,
-            WorkoutTemplateUpdate,
+            WorkoutCreate,
+            WorkoutUpdate,
             TemplateItemCreate,
             PaginationParams,
             PaginatedResponse
         )
-        from ..models.mongo_models import WorkoutTemplate, TemplateItem
+        from ..models.mongo_models import Workout, TemplateItem
         from ..routers.auth import get_current_user
 
-router = APIRouter(prefix="/templates", tags=["workout templates"])
+router = APIRouter(prefix="/workouts", tags=["workouts"])
 
 db = None
 
@@ -54,14 +52,14 @@ def set_db_connection(database):
 
 
 @router.get("", response_model=PaginatedResponse)
-async def get_templates(
+async def get_workouts(
     current_user: dict = Depends(get_current_user),
     pagination: PaginationParams = Depends(),
     search: Optional[str] = None,
     visibility: Optional[str] = Query(None, pattern="^(private|unlisted|public)$"),
     include_deleted: bool = False
 ):
-    """Получение шаблонов тренировок с пагинацией"""
+    """Получение Workouts пользователя с пагинацией"""
     user_id = current_user["id"]
     
     filters = {"owner_id": user_id}
@@ -77,19 +75,19 @@ async def get_templates(
     if visibility:
         filters["visibility"] = visibility
     
-    total = await db.workout_templates.count_documents(filters)
+    total = await db.workouts.count_documents(filters)
     
     sort_field = pagination.sort_by or "updated_at"
     sort_order = -1 if pagination.sort_order == "desc" else 1
     
-    templates = await db.workout_templates.find(
+    templates = await db.workouts.find(
         filters,
         {"_id": 0}
     ).sort(sort_field, sort_order).skip(
         (pagination.page - 1) * pagination.page_size
     ).limit(pagination.page_size).to_list(length=pagination.page_size)
     
-    items = [WorkoutTemplate.from_mongo(tmpl) for tmpl in templates]
+    items = [Workout.from_mongo(w) for w in templates]
     
     return PaginatedResponse(
         items=items,
@@ -100,15 +98,15 @@ async def get_templates(
     )
 
 
-@router.get("/{template_id}", response_model=WorkoutTemplate)
-async def get_template(
-    template_id: str,
+@router.get("/{workout_id}", response_model=Workout)
+async def get_workout(
+    workout_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Получение конкретного шаблона тренировки"""
     user_id = current_user["id"]
     
-    # template = await db.workout_templates.find_one({
+    # template = await db.workouts.find_one({
     #     "_id": template_id,
     #     "$or": [
     #         {"owner_id": user_id},
@@ -131,7 +129,7 @@ async def get_template(
             detail="Template not found"
         )
     
-    return WorkoutTemplate(
+    return Workout(
         id="1",
         owner_id=user_id,
         title="Push Day",
@@ -154,17 +152,17 @@ async def get_template(
     )
 
 
-@router.post("", response_model=WorkoutTemplate, status_code=status.HTTP_201_CREATED)
-async def create_template(
-    template_data: WorkoutTemplateCreate,
+@router.post("", response_model=Workout, status_code=status.HTTP_201_CREATED)
+async def create_workout(
+    workout_data: WorkoutCreate,
     current_user: dict = Depends(get_current_user)
 ):
-    """Создание шаблона тренировки"""
+    """Создание Workout"""
     user_id = current_user["id"]
     
     # Создаем элементы шаблона
     items = []
-    for i, item_data in enumerate(template_data.items):
+    for i, item_data in enumerate(workout_data.items):
         item = TemplateItem(
             exercise_id=item_data.exercise_id,
             order_index=item_data.order_index or i,
@@ -178,36 +176,34 @@ async def create_template(
         )
         items.append(item)
     
-    template = WorkoutTemplate(
+    workout = Workout(
         owner_id=user_id,
-        title=template_data.title,
-        description=template_data.description,
-        visibility=template_data.visibility,
+        title=workout_data.title,
+        description=workout_data.description,
+        visibility=workout_data.visibility,
         items=items
     )
-    
-    # Генерируем share_code для unlisted/public шаблонов
-    if template.visibility in ["unlisted", "public"] and not template.share_code:
+
+    if workout.visibility in ["unlisted", "public"] and not workout.share_code:
         import secrets
-        template.share_code = secrets.token_urlsafe(8)
-    
-    # Сохраняем в базу данных
-    await db.workout_templates.insert_one(template.to_mongo())
-    
-    return template
+        workout.share_code = secrets.token_urlsafe(8)
+
+    await db.workouts.insert_one(workout.to_mongo())
+
+    return workout
 
 
-@router.put("/{template_id}", response_model=WorkoutTemplate)
-async def update_template(
-    template_id: str,
-    template_data: WorkoutTemplateUpdate,
+@router.put("/{workout_id}", response_model=Workout)
+async def update_workout(
+    workout_id: str,
+    workout_data: WorkoutUpdate,
     current_user: dict = Depends(get_current_user)
 ):
-    """Обновление шаблона тренировки"""
+    """Обновление Workout"""
     user_id = current_user["id"]
     
     # Находим шаблон
-    # template = await db.workout_templates.find_one({
+    # template = await db.workouts.find_one({
     #     "_id": template_id,
     #     "owner_id": user_id,
     #     "deleted_at": None
@@ -219,28 +215,28 @@ async def update_template(
     #     )
     
     # Обновляем поля
-    update_data = template_data.model_dump(exclude_unset=True)
+    update_data = workout_data.model_dump(exclude_unset=True)
     update_data["updated_at"] = datetime.now(timezone.utc)
     
     # Если обновляется revision, увеличиваем его
     if "revision" in update_data:
         update_data["revision"] = template.get("revision", 1) + 1
     
-    # await db.workout_templates.update_one(
+    # await db.workouts.update_one(
     #     {"_id": template_id},
     #     {"$set": update_data}
     # )
     
     # Получаем обновленный шаблон
-    # updated_template = await db.workout_templates.find_one({"_id": template_id}, {"_id": 0})
+    # updated_template = await db.workouts.find_one({"_id": template_id}, {"_id": 0})
     
     # Заглушка
-    updated_template = WorkoutTemplate(
+    updated_template = Workout(
         id=template_id,
         owner_id=user_id,
-        title=template_data.title or "Updated Template",
-        description=template_data.description,
-        visibility=template_data.visibility or "private",
+        title=workout_data.title or "Updated Template",
+        description=workout_data.description,
+        visibility=workout_data.visibility or "private",
         revision=2,
         items=[],
         created_at=datetime.now(timezone.utc),
@@ -250,9 +246,9 @@ async def update_template(
     return updated_template
 
 
-@router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_template(
-    template_id: str,
+@router.delete("/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_workout(
+    workout_id: str,
     current_user: dict = Depends(get_current_user),
     permanent: bool = Query(False, description="Permanent deletion")
 ):
@@ -260,7 +256,7 @@ async def delete_template(
     user_id = current_user["id"]
     
     # Находим шаблон
-    # template = await db.workout_templates.find_one({
+    # template = await db.workouts.find_one({
     #     "_id": template_id,
     #     "owner_id": user_id
     # })
@@ -272,11 +268,11 @@ async def delete_template(
     
     if permanent:
         # Полное удаление
-        # await db.workout_templates.delete_one({"_id": template_id})
+        # await db.workouts.delete_one({"_id": template_id})
         pass
     else:
         # Мягкое удаление
-        # await db.workout_templates.update_one(
+        # await db.workouts.update_one(
         #     {"_id": template_id},
         #     {"$set": {"deleted_at": datetime.now(timezone.utc)}}
         # )
@@ -285,16 +281,16 @@ async def delete_template(
     return None
 
 
-@router.post("/{template_id}/duplicate", response_model=WorkoutTemplate)
-async def duplicate_template(
-    template_id: str,
+@router.post("/{workout_id}/duplicate", response_model=Workout)
+async def duplicate_workout(
+    workout_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Дублирование шаблона тренировки"""
     user_id = current_user["id"]
     
     # Находим исходный шаблон
-    # source_template = await db.workout_templates.find_one({
+    # source_template = await db.workouts.find_one({
     #     "_id": template_id,
     #     "$or": [
     #         {"owner_id": user_id},
@@ -318,10 +314,10 @@ async def duplicate_template(
     # new_template["updated_at"] = datetime.now(timezone.utc)
     # new_template["deleted_at"] = None
     
-    # await db.workout_templates.insert_one(new_template)
+    # await db.workouts.insert_one(new_template)
     
     # Заглушка
-    new_template = WorkoutTemplate(
+    new_template = Workout(
         id="2",
         owner_id=user_id,
         title="Push Day (Copy)",
@@ -336,10 +332,10 @@ async def duplicate_template(
     return new_template
 
 
-@router.get("/shared/{share_code}", response_model=WorkoutTemplate)
-async def get_template_by_share_code(share_code: str):
-    """Получение шаблона по share code"""
-    # template = await db.workout_templates.find_one({
+@router.get("/shared/{share_code}", response_model=Workout)
+async def get_workout_by_share_code(share_code: str):
+    """Получение Workout по share code"""
+    # template = await db.workouts.find_one({
     #     "share_code": share_code,
     #     "visibility": {"$in": ["unlisted", "public"]},
     #     "deleted_at": None
@@ -358,7 +354,7 @@ async def get_template_by_share_code(share_code: str):
             detail="Template not found"
         )
     
-    return WorkoutTemplate(
+    return Workout(
         id="3",
         owner_id="user123",
         title="Shared Workout",

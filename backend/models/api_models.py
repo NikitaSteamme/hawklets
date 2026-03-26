@@ -84,20 +84,44 @@ class TemplateItemCreate(BaseModel):
     notes: Optional[str] = None
 
 
-class WorkoutTemplateCreate(BaseModel):
-    """Модель для создания шаблона тренировки"""
+class WorkoutCreate(BaseModel):
+    """Модель для создания Workout"""
     title: str
     description: Optional[str] = None
     visibility: str = Field(default="private")
     items: List[TemplateItemCreate] = Field(default_factory=list)
 
 
-class WorkoutTemplateUpdate(BaseModel):
-    """Модель для обновления шаблона тренировки"""
+class WorkoutUpdate(BaseModel):
+    """Модель для обновления Workout"""
     title: Optional[str] = None
     description: Optional[str] = None
     visibility: Optional[str] = None
     revision: Optional[int] = None
+
+
+class RoutineCreate(BaseModel):
+    """Модель для создания Routine"""
+    name: str
+    workout_ids: List[str] = Field(default_factory=list)
+
+
+class RoutineUpdate(BaseModel):
+    """Модель для обновления Routine"""
+    name: Optional[str] = None
+    workout_ids: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+
+class RoutineResponse(BaseModel):
+    """Модель ответа с данными Routine"""
+    id: str
+    name: str
+    workout_ids: List[str]
+    is_active: bool
+    owner_id: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class WorkoutSessionCreateRequest(BaseModel):

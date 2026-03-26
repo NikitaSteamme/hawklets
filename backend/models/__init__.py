@@ -8,7 +8,8 @@ from .mongo_models import (
     ExerciseGlobal,
     ExerciseUser,
     TemplateItem,
-    WorkoutTemplate
+    Workout,
+    Routine
 )
 from .postgres_models import (
     WorkoutSession,
@@ -32,8 +33,11 @@ from .api_models import (
     ExerciseCreate,
     ExerciseUpdate,
     TemplateItemCreate,
-    WorkoutTemplateCreate,
-    WorkoutTemplateUpdate,
+    WorkoutCreate,
+    WorkoutUpdate,
+    RoutineCreate,
+    RoutineUpdate,
+    RoutineResponse,
     WorkoutSessionCreateRequest,
     SessionSetCreateRequest,
     IMURecordCreateRequest,
@@ -53,7 +57,8 @@ __all__ = [
     "ExerciseGlobal",
     "ExerciseUser",
     "TemplateItem",
-    "WorkoutTemplate",
+    "Workout",
+    "Routine",
     
     # PostgreSQL models
     "WorkoutSession",
@@ -77,8 +82,11 @@ __all__ = [
     "ExerciseCreate",
     "ExerciseUpdate",
     "TemplateItemCreate",
-    "WorkoutTemplateCreate",
-    "WorkoutTemplateUpdate",
+    "WorkoutCreate",
+    "WorkoutUpdate",
+    "RoutineCreate",
+    "RoutineUpdate",
+    "RoutineResponse",
     "WorkoutSessionCreateRequest",
     "SessionSetCreateRequest",
     "IMURecordCreateRequest",

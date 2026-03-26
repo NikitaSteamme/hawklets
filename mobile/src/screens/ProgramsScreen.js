@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import ProgramService from '../services/ProgramService';
+import WorkoutService from '../services/ProgramService';
 import CreateProgramModal from '../components/CreateProgramModal';
 
 // ── Create Routine Modal ─────────────────────────────────────────────────────
@@ -46,8 +46,7 @@ function CreateRoutineModal({ visible, workouts, onClose, onSave }) {
       Alert.alert('Validation', 'Please select at least one workout');
       return;
     }
-    const selectedWorkouts = workouts.filter(w => selectedIds.includes(w.id || w._id));
-    onSave({ name: routineName.trim(), workouts: selectedWorkouts });
+    onSave(routineName.trim(), selectedIds);
     onClose();
   };
 
@@ -166,20 +165,23 @@ const rmStyles = StyleSheet.create({
 
 const WorkoutsScreen = () => {
   const [workouts, setWorkouts] = useState([]);
+  const [routines, setRoutines] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [routines, setRoutines] = useState([]);
 
   const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState(false);
   const [isRoutineModalVisible, setIsRoutineModalVisible] = useState(false);
 
-  const fetchWorkouts = async () => {
+  const fetchData = async () => {
     try {
-      const response = await ProgramService.getPrograms(1, 100);
-      setWorkouts(response.items || []);
+      const [workoutsRes, routinesRes] = await Promise.all([
+        WorkoutService.getWorkouts(),
+        WorkoutService.getRoutines(),
+      ]);
+      setWorkouts(workoutsRes.items || []);
+      setRoutines(routinesRes || []);
     } catch (error) {
-      console.log('Error fetching workouts:', error);
+      console.log('Error fetching data:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -187,12 +189,12 @@ const WorkoutsScreen = () => {
   };
 
   useEffect(() => {
-    fetchWorkouts();
+    fetchData();
   }, []);
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    fetchWorkouts();
+    fetchData();
   };
 
   const getStyling = (index) => {
@@ -205,11 +207,16 @@ const WorkoutsScreen = () => {
     return palette[index % palette.length];
   };
 
-  const handleRoutineCreated = (routine) => {
-    setRoutines(prev => [...prev, routine]);
+  const handleRoutineCreated = async (name, workoutIds) => {
+    try {
+      const created = await WorkoutService.createRoutine(name, workoutIds);
+      setRoutines(prev => [...prev, created]);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to create routine');
+    }
   };
 
-  const activeRoutine = routines[0] ?? null;
+  const activeRoutine = routines.find(r => r.is_active) ?? routines[0] ?? null;
 
   const renderWorkoutCard = ({ item, index }) => {
     const s = getStyling(index);

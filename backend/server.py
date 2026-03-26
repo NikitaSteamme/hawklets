@@ -23,14 +23,12 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 try:
-    from backend.routers import auth, exercises, templates, admin_auth, admin_management
+    from backend.routers import auth, exercises, templates, routines, admin_auth, admin_management
 except ImportError:
-    # If backend.routers doesn't work, try direct import
     try:
-        from routers import auth, exercises, templates, admin_auth, admin_management
+        from routers import auth, exercises, templates, routines, admin_auth, admin_management
     except ImportError:
-        # Last resort: try relative import
-        from .routers import auth, exercises, templates, admin_auth, admin_management
+        from .routers import auth, exercises, templates, routines, admin_auth, admin_management
 
 # Configure logging
 logging.basicConfig(
@@ -94,12 +92,14 @@ auth.set_db_connection(db)
 # Set database connection for exercises and templates
 exercises.set_db_connection(db)
 templates.set_db_connection(db)
+routines.set_db_connection(db)
 # Set database connection for admin routers
 admin_auth.set_db_connection(db)
 admin_management.set_db_connection(db)
 api_router.include_router(auth.router)
 api_router.include_router(exercises.router)
 api_router.include_router(templates.router)
+api_router.include_router(routines.router)
 api_router.include_router(admin_auth.router)
 api_router.include_router(admin_management.router)
 
