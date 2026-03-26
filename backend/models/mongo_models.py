@@ -81,6 +81,8 @@ class TemplateItem(BaseModel):
     target_sets: Optional[int] = None
     target_reps_min: Optional[int] = None
     target_reps_max: Optional[int] = None
+    target_weight_kg: Optional[float] = None
+    target_duration_sec: Optional[int] = None
     rest_sec: Optional[int] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

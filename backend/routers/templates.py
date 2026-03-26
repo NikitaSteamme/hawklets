@@ -46,6 +46,12 @@ except ImportError:
 
 router = APIRouter(prefix="/templates", tags=["workout templates"])
 
+db = None
+
+def set_db_connection(database):
+    global db
+    db = database
+
 
 @router.get("", response_model=PaginatedResponse)
 async def get_templates(
@@ -58,64 +64,39 @@ async def get_templates(
     """Получение шаблонов тренировок с пагинацией"""
     user_id = current_user["id"]
     
-    # filters = {"owner_id": user_id}
-    # if not include_deleted:
-    #     filters["deleted_at"] = None
+    filters = {"owner_id": user_id}
+    if not include_deleted:
+        filters["deleted_at"] = None
     
-    # if search:
-    #     filters["$or"] = [
-    #         {"title": {"$regex": search, "$options": "i"}},
-    #         {"description": {"$regex": search, "$options": "i"}}
-    #     ]
+    if search:
+        filters["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
     
-    # if visibility:
-    #     filters["visibility"] = visibility
+    if visibility:
+        filters["visibility"] = visibility
     
-    # total = await db.workout_templates.count_documents(filters)
+    total = await db.workout_templates.count_documents(filters)
     
-    # sort_field = pagination.sort_by or "updated_at"
-    # sort_order = -1 if pagination.sort_order == "desc" else 1
+    sort_field = pagination.sort_by or "updated_at"
+    sort_order = -1 if pagination.sort_order == "desc" else 1
     
-    # templates = await db.workout_templates.find(
-    #     filters,
-    #     {"_id": 0}
-    # ).sort(sort_field, sort_order).skip(
-    #     (pagination.page - 1) * pagination.page_size
-    # ).limit(pagination.page_size).to_list(length=pagination.page_size)
+    templates = await db.workout_templates.find(
+        filters,
+        {"_id": 0}
+    ).sort(sort_field, sort_order).skip(
+        (pagination.page - 1) * pagination.page_size
+    ).limit(pagination.page_size).to_list(length=pagination.page_size)
     
-    # items = [WorkoutTemplate.from_mongo(tmpl) for tmpl in templates]
-    
-    # Заглушка
-    items = [
-        WorkoutTemplate(
-            id="1",
-            owner_id=user_id,
-            title="Push Day",
-            description="Chest and triceps workout",
-            visibility="private",
-            revision=1,
-            items=[
-                TemplateItem(
-                    id="1",
-                    exercise_id="1",
-                    order_index=0,
-                    target_sets=3,
-                    target_reps_min=8,
-                    target_reps_max=12,
-                    rest_sec=90
-                )
-            ],
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
-        )
-    ]
+    items = [WorkoutTemplate.from_mongo(tmpl) for tmpl in templates]
     
     return PaginatedResponse(
         items=items,
-        total=1,
+        total=total,
         page=pagination.page,
         page_size=pagination.page_size,
-        total_pages=1
+        total_pages=(total + pagination.page_size - 1) // pagination.page_size
     )
 
 
@@ -190,6 +171,8 @@ async def create_template(
             target_sets=item_data.target_sets,
             target_reps_min=item_data.target_reps_min,
             target_reps_max=item_data.target_reps_max,
+            target_weight_kg=getattr(item_data, "target_weight_kg", None),
+            target_duration_sec=getattr(item_data, "target_duration_sec", None),
             rest_sec=item_data.rest_sec,
             notes=item_data.notes
         )
@@ -209,7 +192,7 @@ async def create_template(
         template.share_code = secrets.token_urlsafe(8)
     
     # Сохраняем в базу данных
-    # await db.workout_templates.insert_one(template.to_mongo())
+    await db.workout_templates.insert_one(template.to_mongo())
     
     return template
 

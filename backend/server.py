@@ -91,6 +91,9 @@ api_router = APIRouter(prefix="/api", dependencies=[Depends(verify_api_key)])
 # Подключаем роутеры
 # Set database connection for auth router
 auth.set_db_connection(db)
+# Set database connection for exercises and templates
+exercises.set_db_connection(db)
+templates.set_db_connection(db)
 # Set database connection for admin routers
 admin_auth.set_db_connection(db)
 admin_management.set_db_connection(db)

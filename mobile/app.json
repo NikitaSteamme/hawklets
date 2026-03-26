@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Hawklets Fitness",
+    "slug": "hawklets-fitness",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4CAF50"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hawklets.fitness",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "This app needs Bluetooth to connect to your fitness tracker",
+        "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth to connect to your fitness tracker",
+        "NSLocationWhenInUseUsageDescription": "This app needs location permission to scan for Bluetooth devices",
+        "UIBackgroundModes": [
+          "bluetooth-central",
+          "fetch",
+          "remote-notification"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4CAF50"
+      },
+      "package": "com.hawklets.fitness",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-notifications"
+    ],
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "newArchEnabled": false,
+    "sdkVersion": "51.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "1de3bd83-19f8-481d-859c-a2b7b7619701"
+      }
+    },
+    "owner": "nikita258963"
+  }
+}

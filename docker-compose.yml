@@ -77,6 +77,9 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    command: uvicorn server:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       mongo:
         condition: service_healthy

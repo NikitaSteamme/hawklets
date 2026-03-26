@@ -365,9 +365,9 @@ export const Home = () => {
             </p>
             <div className="pt-8">
               <img
-                src="/img/img3.png"
+                src="/img/hawklet_mascot.png"
                 alt="Hawklet mascot"
-                className="w-64 h-64 mx-auto drop-shadow-2xl"
+                className="w-64 h-auto mx-auto object-contain mix-blend-multiply"
               />
             </div>
           </div>
