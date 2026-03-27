@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Image,
   Switch,
   Alert,
   Modal,
@@ -17,13 +16,55 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
 import AuthService from '../services/AuthService';
+import AvatarImage from '../components/AvatarImage';
 
 const AccountScreen = ({ navigation, onLogout, currentUser, onUserUpdate }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarPress = () => {
+    Alert.alert('Change Photo', 'Choose an option', [
+      {
+        text: 'Camera',
+        onPress: () => pickImage(ImagePicker.launchCameraAsync),
+      },
+      {
+        text: 'Photo Library',
+        onPress: () => pickImage(ImagePicker.launchImageLibraryAsync),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const pickImage = async (launcher) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await launcher({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setUploadingAvatar(true);
+      try {
+        await AuthService.uploadAvatar(result.assets[0].uri);
+        if (onUserUpdate) await onUserUpdate();
+      } catch (e) {
+        Alert.alert('Error', e.message || 'Failed to upload photo');
+      } finally {
+        setUploadingAvatar(false);
+      }
+    }
+  };
 
   const displayName = currentUser
     ? [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.display_name
@@ -116,7 +157,18 @@ const AccountScreen = ({ navigation, onLogout, currentUser, onUserUpdate }) => {
           end={{ x: 1, y: 0 }}
         >
           <View style={styles.profileContent}>
-            <Image source={require('../../assets/avatar.png')} style={styles.avatar} resizeMode="cover" />
+            <TouchableOpacity style={styles.avatarWrapper} onPress={handleAvatarPress} disabled={uploadingAvatar}>
+              <AvatarImage
+                avatarUrl={currentUser?.avatar_url}
+                size={80}
+                style={styles.avatar}
+              />
+              <View style={styles.avatarCameraBtn}>
+                {uploadingAvatar
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Ionicons name="camera" size={14} color="#fff" />}
+              </View>
+            </TouchableOpacity>
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{displayName}</Text>
               <Text style={styles.userEmail}>{currentUser?.email || '—'}</Text>
@@ -270,11 +322,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  avatarWrapper: {
+    position: 'relative',
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
+    borderColor: 'white',
+  },
+  avatarCameraBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
     borderColor: 'white',
   },
   profileInfo: {

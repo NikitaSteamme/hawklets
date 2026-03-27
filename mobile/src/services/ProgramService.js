@@ -108,6 +108,29 @@ const WorkoutService = {
     return apiRequest(`/routines/${routineId}`, { method: 'DELETE' });
   },
 
+  // ── Workout Logs (Journal) ───────────────────────────────────────────────────
+
+  getWorkoutLogs: async (limit = 50) => {
+    return apiRequest(`/workout-logs?limit=${limit}`);
+  },
+
+  createWorkoutLog: async (workoutName, workoutId, loggedAt, durationMinutes, notes) => {
+    return apiRequest('/workout-logs', {
+      method: 'POST',
+      body: JSON.stringify({
+        workout_name: workoutName,
+        workout_id: workoutId || null,
+        logged_at: loggedAt || null,
+        duration_minutes: durationMinutes || null,
+        notes: notes || null,
+      }),
+    });
+  },
+
+  deleteWorkoutLog: async (logId) => {
+    return apiRequest(`/workout-logs/${logId}`, { method: 'DELETE' });
+  },
+
   // ── Exercises ────────────────────────────────────────────────────────────────
 
   getGlobalExercises: async () => {

@@ -11,6 +11,10 @@ class User(BaseDocument):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     preferences: Dict[str, Any] = Field(default_factory=dict)
+    iron_points: int = 0
+    endurance_points: int = 0
+    friend_ids: List[str] = Field(default_factory=list)
+    avatar_url: Optional[str] = None
     auth: Optional[Dict[str, Any]] = None
     
     class Config:
@@ -79,6 +83,8 @@ class TemplateItem(BaseModel):
     """Элемент шаблона тренировки (вложенный документ)"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     exercise_id: str
+    # Populated at read time by joining with exercises_global; not stored in DB
+    exercise_name: Optional[str] = None
     order_index: int
     target_sets: Optional[int] = None
     target_reps_min: Optional[int] = None
@@ -120,6 +126,56 @@ class Routine(BaseDocument, OwnerMixin):
         indexes = [
             {"key": [("owner_id", 1), ("updated_at", -1)]},
             {"key": [("owner_id", 1), ("is_active", 1)]},
+        ]
+
+
+class WorkoutLog(BaseDocument, OwnerMixin):
+    """WorkoutLog — запись о проведённой тренировке"""
+    workout_name: str
+    workout_id: Optional[str] = None
+    logged_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+
+    class Config:
+        collection_name = "workout_logs"
+        indexes = [
+            {"key": [("owner_id", 1), ("logged_at", -1)]},
+        ]
+
+
+class Challenge(BaseDocument):
+    """Challenge — соревновательный вызов для пользователей"""
+    title: str
+    description: Optional[str] = None
+    type: str = Field(default="ip")  # ip / ep / mixed
+    target_ip: int = 0
+    target_ep: int = 0
+    duration_days: int = 7
+    min_participants: int = 1
+    is_active: bool = True
+
+    class Config:
+        collection_name = "challenges"
+        indexes = [
+            {"key": [("is_active", 1)]},
+            {"key": [("type", 1)]},
+        ]
+
+
+class Notification(BaseDocument, OwnerMixin):
+    """Notification — уведомление пользователя (запросы в друзья и т.п.)"""
+    type: str = Field(default="friend_request")
+    from_user_id: str
+    from_user_name: str
+    read: bool = False
+    data: Dict[str, Any] = Field(default_factory=dict)
+
+    class Config:
+        collection_name = "notifications"
+        indexes = [
+            {"key": [("owner_id", 1), ("read", 1)]},
+            {"key": [("owner_id", 1), ("created_at", -1)]},
         ]
 
 

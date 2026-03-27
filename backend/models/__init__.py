@@ -9,7 +9,10 @@ from .mongo_models import (
     ExerciseUser,
     TemplateItem,
     Workout,
-    Routine
+    Routine,
+    WorkoutLog,
+    Challenge,
+    Notification,
 )
 from .postgres_models import (
     WorkoutSession,
@@ -38,6 +41,12 @@ from .api_models import (
     RoutineCreate,
     RoutineUpdate,
     RoutineResponse,
+    WorkoutLogCreate,
+    WorkoutLogResponse,
+    ChallengeResponse,
+    LeaderboardEntry,
+    FriendResponse,
+    NotificationResponse,
     WorkoutSessionCreateRequest,
     SessionSetCreateRequest,
     IMURecordCreateRequest,
@@ -59,6 +68,9 @@ __all__ = [
     "TemplateItem",
     "Workout",
     "Routine",
+    "WorkoutLog",
+    "Challenge",
+    "Notification",
     
     # PostgreSQL models
     "WorkoutSession",
@@ -87,6 +99,12 @@ __all__ = [
     "RoutineCreate",
     "RoutineUpdate",
     "RoutineResponse",
+    "WorkoutLogCreate",
+    "WorkoutLogResponse",
+    "ChallengeResponse",
+    "LeaderboardEntry",
+    "FriendResponse",
+    "NotificationResponse",
     "WorkoutSessionCreateRequest",
     "SessionSetCreateRequest",
     "IMURecordCreateRequest",

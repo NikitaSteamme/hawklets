@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 from datetime import datetime, timezone
+import secrets
 import sys
 from pathlib import Path
 
-# Add parent directory to sys.path to allow both absolute and relative imports
 current_dir = Path(__file__).parent
 parent_dir = current_dir.parent.parent
 if str(parent_dir) not in sys.path:
@@ -46,10 +46,45 @@ router = APIRouter(prefix="/workouts", tags=["workouts"])
 
 db = None
 
+
 def set_db_connection(database):
     global db
     db = database
 
+
+# ─── Exercise name population ─────────────────────────────────────────────────
+
+async def _populate_exercise_names(workout_docs: list) -> list:
+    """
+    One-shot batch query: collect all unique exercise_ids across all workout
+    documents, fetch their names from exercises_global, then attach
+    exercise_name to every item dict.  Falls back to exercise_id if not found.
+    """
+    all_ids = list({
+        item["exercise_id"]
+        for w in workout_docs
+        for item in w.get("items", [])
+    })
+    if not all_ids:
+        return workout_docs
+
+    exercises = await db.exercises_global.find(
+        {"_id": {"$in": all_ids}},
+        {"_id": 1, "name": 1}
+    ).to_list(length=len(all_ids))
+
+    name_map = {ex["_id"]: ex["name"] for ex in exercises}
+
+    for w in workout_docs:
+        for item in w.get("items", []):
+            item["exercise_name"] = name_map.get(
+                item["exercise_id"], item["exercise_id"]
+            )
+
+    return workout_docs
+
+
+# ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=PaginatedResponse)
 async def get_workouts(
@@ -61,34 +96,33 @@ async def get_workouts(
 ):
     """Получение Workouts пользователя с пагинацией"""
     user_id = current_user["id"]
-    
+
     filters = {"owner_id": user_id}
     if not include_deleted:
         filters["deleted_at"] = None
-    
+
     if search:
         filters["$or"] = [
             {"title": {"$regex": search, "$options": "i"}},
             {"description": {"$regex": search, "$options": "i"}}
         ]
-    
+
     if visibility:
         filters["visibility"] = visibility
-    
+
     total = await db.workouts.count_documents(filters)
-    
+
     sort_field = pagination.sort_by or "updated_at"
     sort_order = -1 if pagination.sort_order == "desc" else 1
-    
-    templates = await db.workouts.find(
-        filters,
-        {"_id": 0}
-    ).sort(sort_field, sort_order).skip(
+
+    # NOTE: do NOT pass {"_id": 0} — we need _id to build stable workout IDs
+    docs = await db.workouts.find(filters).sort(sort_field, sort_order).skip(
         (pagination.page - 1) * pagination.page_size
     ).limit(pagination.page_size).to_list(length=pagination.page_size)
-    
-    items = [Workout.from_mongo(w) for w in templates]
-    
+
+    docs = await _populate_exercise_names(docs)
+    items = [Workout.from_mongo(w) for w in docs]
+
     return PaginatedResponse(
         items=items,
         total=total,
@@ -103,53 +137,27 @@ async def get_workout(
     workout_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Получение конкретного шаблона тренировки"""
+    """Получение конкретного Workout"""
     user_id = current_user["id"]
-    
-    # template = await db.workouts.find_one({
-    #     "_id": template_id,
-    #     "$or": [
-    #         {"owner_id": user_id},
-    #         {"visibility": "public"},
-    #         {"visibility": "unlisted", "share_code": {"$exists": True}}
-    #     ],
-    #     "deleted_at": None
-    # }, {"_id": 0})
-    
-    # if not template:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="Template not found"
-    #     )
-    
-    # Заглушка
-    if template_id != "1":
+
+    doc = await db.workouts.find_one({
+        "_id": workout_id,
+        "$or": [
+            {"owner_id": user_id},
+            {"visibility": "public"},
+            {"visibility": "unlisted"},
+        ],
+        "deleted_at": None,
+    })
+
+    if not doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Template not found"
+            detail="Workout not found"
         )
-    
-    return Workout(
-        id="1",
-        owner_id=user_id,
-        title="Push Day",
-        description="Chest and triceps workout",
-        visibility="private",
-        revision=1,
-        items=[
-            TemplateItem(
-                id="1",
-                exercise_id="1",
-                order_index=0,
-                target_sets=3,
-                target_reps_min=8,
-                target_reps_max=12,
-                rest_sec=90
-            )
-        ],
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
-    )
+
+    docs = await _populate_exercise_names([doc])
+    return Workout.from_mongo(docs[0])
 
 
 @router.post("", response_model=Workout, status_code=status.HTTP_201_CREATED)
@@ -159,11 +167,9 @@ async def create_workout(
 ):
     """Создание Workout"""
     user_id = current_user["id"]
-    
-    # Создаем элементы шаблона
-    items = []
-    for i, item_data in enumerate(workout_data.items):
-        item = TemplateItem(
+
+    items = [
+        TemplateItem(
             exercise_id=item_data.exercise_id,
             order_index=item_data.order_index or i,
             target_sets=item_data.target_sets,
@@ -172,25 +178,28 @@ async def create_workout(
             target_weight_kg=getattr(item_data, "target_weight_kg", None),
             target_duration_sec=getattr(item_data, "target_duration_sec", None),
             rest_sec=item_data.rest_sec,
-            notes=item_data.notes
+            notes=item_data.notes,
         )
-        items.append(item)
-    
+        for i, item_data in enumerate(workout_data.items)
+    ]
+
     workout = Workout(
         owner_id=user_id,
         title=workout_data.title,
         description=workout_data.description,
         visibility=workout_data.visibility,
-        items=items
+        items=items,
     )
 
-    if workout.visibility in ["unlisted", "public"] and not workout.share_code:
-        import secrets
+    if workout.visibility in ("unlisted", "public") and not workout.share_code:
         workout.share_code = secrets.token_urlsafe(8)
 
-    await db.workouts.insert_one(workout.to_mongo())
+    doc = workout.to_mongo()
+    await db.workouts.insert_one(doc)
 
-    return workout
+    # Populate names so the response already contains exercise_name
+    docs = await _populate_exercise_names([doc])
+    return Workout.from_mongo(docs[0])
 
 
 @router.put("/{workout_id}", response_model=Workout)
@@ -201,49 +210,28 @@ async def update_workout(
 ):
     """Обновление Workout"""
     user_id = current_user["id"]
-    
-    # Находим шаблон
-    # template = await db.workouts.find_one({
-    #     "_id": template_id,
-    #     "owner_id": user_id,
-    #     "deleted_at": None
-    # })
-    # if not template:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="Template not found"
-    #     )
-    
-    # Обновляем поля
-    update_data = workout_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.now(timezone.utc)
-    
-    # Если обновляется revision, увеличиваем его
-    if "revision" in update_data:
-        update_data["revision"] = template.get("revision", 1) + 1
-    
-    # await db.workouts.update_one(
-    #     {"_id": template_id},
-    #     {"$set": update_data}
-    # )
-    
-    # Получаем обновленный шаблон
-    # updated_template = await db.workouts.find_one({"_id": template_id}, {"_id": 0})
-    
-    # Заглушка
-    updated_template = Workout(
-        id=template_id,
-        owner_id=user_id,
-        title=workout_data.title or "Updated Template",
-        description=workout_data.description,
-        visibility=workout_data.visibility or "private",
-        revision=2,
-        items=[],
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
-    )
-    
-    return updated_template
+
+    doc = await db.workouts.find_one({
+        "_id": workout_id,
+        "owner_id": user_id,
+        "deleted_at": None,
+    })
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout not found"
+        )
+
+    update_fields = workout_data.model_dump(exclude_unset=True)
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if "revision" in update_fields:
+        update_fields["revision"] = doc.get("revision", 1) + 1
+
+    await db.workouts.update_one({"_id": workout_id}, {"$set": update_fields})
+
+    updated = await db.workouts.find_one({"_id": workout_id})
+    docs = await _populate_exercise_names([updated])
+    return Workout.from_mongo(docs[0])
 
 
 @router.delete("/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -252,32 +240,24 @@ async def delete_workout(
     current_user: dict = Depends(get_current_user),
     permanent: bool = Query(False, description="Permanent deletion")
 ):
-    """Удаление шаблона тренировки"""
+    """Удаление Workout"""
     user_id = current_user["id"]
-    
-    # Находим шаблон
-    # template = await db.workouts.find_one({
-    #     "_id": template_id,
-    #     "owner_id": user_id
-    # })
-    # if not template:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="Template not found"
-    #     )
-    
+
+    doc = await db.workouts.find_one({"_id": workout_id, "owner_id": user_id})
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout not found"
+        )
+
     if permanent:
-        # Полное удаление
-        # await db.workouts.delete_one({"_id": template_id})
-        pass
+        await db.workouts.delete_one({"_id": workout_id})
     else:
-        # Мягкое удаление
-        # await db.workouts.update_one(
-        #     {"_id": template_id},
-        #     {"$set": {"deleted_at": datetime.now(timezone.utc)}}
-        # )
-        pass
-    
+        await db.workouts.update_one(
+            {"_id": workout_id},
+            {"$set": {"deleted_at": datetime.now(timezone.utc).isoformat()}}
+        )
+
     return None
 
 
@@ -286,83 +266,52 @@ async def duplicate_workout(
     workout_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Дублирование шаблона тренировки"""
+    """Дублирование Workout"""
     user_id = current_user["id"]
-    
-    # Находим исходный шаблон
-    # source_template = await db.workouts.find_one({
-    #     "_id": template_id,
-    #     "$or": [
-    #         {"owner_id": user_id},
-    #         {"visibility": "public"}
-    #     ],
-    #     "deleted_at": None
-    # })
-    # if not source_template:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="Template not found"
-    #     )
-    
-    # Создаем копию
-    # new_template = source_template.copy()
-    # new_template["_id"] = str(uuid.uuid4())
-    # new_template["owner_id"] = user_id
-    # new_template["title"] = f"{source_template['title']} (Copy)"
-    # new_template["share_code"] = None
-    # new_template["created_at"] = datetime.now(timezone.utc)
-    # new_template["updated_at"] = datetime.now(timezone.utc)
-    # new_template["deleted_at"] = None
-    
-    # await db.workouts.insert_one(new_template)
-    
-    # Заглушка
-    new_template = Workout(
-        id="2",
-        owner_id=user_id,
-        title="Push Day (Copy)",
-        description="Chest and triceps workout - Copy",
-        visibility="private",
-        revision=1,
-        items=[],
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
-    )
-    
-    return new_template
+
+    source = await db.workouts.find_one({
+        "_id": workout_id,
+        "$or": [{"owner_id": user_id}, {"visibility": "public"}],
+        "deleted_at": None,
+    })
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout not found"
+        )
+
+    import uuid
+    new_doc = dict(source)
+    new_doc["_id"] = str(uuid.uuid4())
+    new_doc["owner_id"] = user_id
+    new_doc["title"] = f"{source['title']} (Copy)"
+    new_doc["share_code"] = None
+    new_doc["visibility"] = "private"
+    now = datetime.now(timezone.utc).isoformat()
+    new_doc["created_at"] = now
+    new_doc["updated_at"] = now
+    new_doc["deleted_at"] = None
+
+    await db.workouts.insert_one(new_doc)
+
+    docs = await _populate_exercise_names([new_doc])
+    return Workout.from_mongo(docs[0])
 
 
 @router.get("/shared/{share_code}", response_model=Workout)
 async def get_workout_by_share_code(share_code: str):
     """Получение Workout по share code"""
-    # template = await db.workouts.find_one({
-    #     "share_code": share_code,
-    #     "visibility": {"$in": ["unlisted", "public"]},
-    #     "deleted_at": None
-    # }, {"_id": 0})
-    
-    # if not template:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="Template not found"
-    #     )
-    
-    # Заглушка
-    if share_code != "abc123":
+    doc = await db.workouts.find_one({
+        "share_code": share_code,
+        "visibility": {"$in": ["unlisted", "public"]},
+        "deleted_at": None,
+    })
+
+    if not doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Template not found"
+            detail="Workout not found"
         )
-    
-    return Workout(
-        id="3",
-        owner_id="user123",
-        title="Shared Workout",
-        description="Public workout template",
-        visibility="public",
-        share_code="abc123",
-        revision=1,
-        items=[],
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
-    )
+
+    docs = await _populate_exercise_names([doc])
+    return Workout.from_mongo(docs[0])

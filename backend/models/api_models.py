@@ -41,6 +41,7 @@ class UserResponse(BaseModel):
     display_name: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    avatar_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -124,6 +125,27 @@ class RoutineResponse(BaseModel):
     updated_at: datetime
 
 
+class WorkoutLogCreate(BaseModel):
+    """Модель для создания записи о тренировке"""
+    workout_name: str
+    workout_id: Optional[str] = None
+    logged_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class WorkoutLogResponse(BaseModel):
+    """Модель ответа с данными о тренировке"""
+    id: str
+    workout_name: str
+    workout_id: Optional[str] = None
+    logged_at: datetime
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+    owner_id: str
+    created_at: datetime
+
+
 class WorkoutSessionCreateRequest(BaseModel):
     """Запрос на создание сессии тренировки"""
     template_id: Optional[str] = None
@@ -176,3 +198,45 @@ class HealthCheckResponse(BaseModel):
     timestamp: datetime
     version: str
     dependencies: Dict[str, str]
+
+
+class ChallengeResponse(BaseModel):
+    """Модель ответа с данными Challenge"""
+    id: str
+    title: str
+    description: Optional[str] = None
+    type: str
+    target_ip: int
+    target_ep: int
+    duration_days: int
+    min_participants: int
+    is_active: bool
+    created_at: datetime
+
+
+class LeaderboardEntry(BaseModel):
+    """Запись в таблице лидеров"""
+    id: str
+    display_name: str
+    iron_points: int
+    endurance_points: int
+    rank: int
+
+
+class FriendResponse(BaseModel):
+    """Данные друга/пользователя для отображения"""
+    id: str
+    display_name: str
+    iron_points: int
+    endurance_points: int
+
+
+class NotificationResponse(BaseModel):
+    """Модель ответа уведомления"""
+    id: str
+    type: str
+    from_user_id: str
+    from_user_name: str
+    read: bool
+    created_at: datetime
+    data: Dict[str, Any] = {}

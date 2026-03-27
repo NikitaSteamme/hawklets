@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/seed_test_data.py)",
+      "Bash(docker compose:*)",
+      "Bash(npx expo:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''expo'''',{}\\).get\\(''''ios'''',{}\\), indent=2\\)\\)\")"
+    ]
+  }
+}

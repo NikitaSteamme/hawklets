@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,15 +17,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import WorkoutService from '../services/ProgramService';
 import CreateProgramModal from '../components/CreateProgramModal';
+import bleService from '../services/BLEService';
+import { WorkoutSyncService } from '../services/WorkoutSyncService';
+
+// Module-level singleton so sync state persists across renders
+const syncService = new WorkoutSyncService(bleService);
 
 // ── Create Routine Modal ─────────────────────────────────────────────────────
 
-function CreateRoutineModal({ visible, workouts, onClose, onSave }) {
+function CreateRoutineModal({ visible, workouts, routines, onClose, onSave, onSetActive, onDelete }) {
+  const [tab, setTab] = useState('new'); // 'new' | 'manage'
   const [routineName, setRoutineName] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     if (visible) {
+      setTab('new');
       setRoutineName('');
       setSelectedIds([]);
     }
@@ -50,6 +57,17 @@ function CreateRoutineModal({ visible, workouts, onClose, onSave }) {
     onClose();
   };
 
+  const handleDelete = (routine) => {
+    Alert.alert(
+      'Delete Routine',
+      `Delete "${routine.name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => onDelete(routine.id) },
+      ]
+    );
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={rmStyles.container}>
@@ -57,57 +75,129 @@ function CreateRoutineModal({ visible, workouts, onClose, onSave }) {
           <TouchableOpacity onPress={onClose} style={rmStyles.iconBtn}>
             <Ionicons name="close" size={28} color="#333" />
           </TouchableOpacity>
-          <Text style={rmStyles.headerTitle}>New Routine</Text>
-          <TouchableOpacity onPress={handleSave} style={rmStyles.iconBtn}>
-            <Ionicons name="checkmark-sharp" size={28} color="#4CAF50" />
+          <Text style={rmStyles.headerTitle}>Routines</Text>
+          {tab === 'new' ? (
+            <TouchableOpacity onPress={handleSave} style={rmStyles.iconBtn}>
+              <Ionicons name="checkmark-sharp" size={28} color="#4CAF50" />
+            </TouchableOpacity>
+          ) : (
+            <View style={rmStyles.iconBtn} />
+          )}
+        </View>
+
+        {/* Tabs */}
+        <View style={rmStyles.tabs}>
+          <TouchableOpacity
+            style={[rmStyles.tab, tab === 'new' && rmStyles.tabActive]}
+            onPress={() => setTab('new')}
+          >
+            <Text style={[rmStyles.tabText, tab === 'new' && rmStyles.tabTextActive]}>New</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[rmStyles.tab, tab === 'manage' && rmStyles.tabActive]}
+            onPress={() => setTab('manage')}
+          >
+            <Text style={[rmStyles.tabText, tab === 'manage' && rmStyles.tabTextActive]}>
+              My Routines{routines.length > 0 ? ` (${routines.length})` : ''}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={rmStyles.body} showsVerticalScrollIndicator={false}>
-          <Text style={rmStyles.label}>Routine Name</Text>
-          <TextInput
-            style={rmStyles.input}
-            placeholder="e.g. 5-Day Power Block"
-            value={routineName}
-            onChangeText={setRoutineName}
-          />
+        {tab === 'new' ? (
+          <ScrollView style={rmStyles.body} showsVerticalScrollIndicator={false}>
+            <Text style={rmStyles.label}>Routine Name</Text>
+            <TextInput
+              style={rmStyles.input}
+              placeholder="e.g. 5-Day Power Block"
+              value={routineName}
+              onChangeText={setRoutineName}
+            />
 
-          <Text style={[rmStyles.label, { marginTop: 24 }]}>Add Workouts</Text>
-          {workouts.length === 0 ? (
-            <View style={rmStyles.emptyWorkouts}>
-              <Text style={rmStyles.emptyWorkoutsText}>
-                No workouts yet. Create some workouts first.
-              </Text>
-            </View>
-          ) : (
-            workouts.map((w) => {
-              const id = w.id || w._id;
-              const selected = selectedIds.includes(id);
-              return (
-                <TouchableOpacity
-                  key={id}
-                  style={[rmStyles.workoutRow, selected && rmStyles.workoutRowSelected]}
-                  onPress={() => toggleWorkout(id)}
-                >
-                  <View style={rmStyles.workoutRowLeft}>
-                    <Ionicons
-                      name={selected ? 'checkbox' : 'square-outline'}
-                      size={22}
-                      color={selected ? '#4CAF50' : '#ccc'}
-                    />
-                    <Text style={[rmStyles.workoutRowText, selected && rmStyles.workoutRowTextSelected]}>
-                      {w.title}
+            <Text style={[rmStyles.label, { marginTop: 24 }]}>Add Workouts</Text>
+            {workouts.length === 0 ? (
+              <View style={rmStyles.emptyWorkouts}>
+                <Text style={rmStyles.emptyWorkoutsText}>
+                  No workouts yet. Create some workouts first.
+                </Text>
+              </View>
+            ) : (
+              workouts.map((w) => {
+                const id = w.id || w._id;
+                const selected = selectedIds.includes(id);
+                return (
+                  <TouchableOpacity
+                    key={id}
+                    style={[rmStyles.workoutRow, selected && rmStyles.workoutRowSelected]}
+                    onPress={() => toggleWorkout(id)}
+                  >
+                    <View style={rmStyles.workoutRowLeft}>
+                      <Ionicons
+                        name={selected ? 'checkbox' : 'square-outline'}
+                        size={22}
+                        color={selected ? '#4CAF50' : '#ccc'}
+                      />
+                      <Text style={[rmStyles.workoutRowText, selected && rmStyles.workoutRowTextSelected]}>
+                        {w.title}
+                      </Text>
+                    </View>
+                    <Text style={rmStyles.workoutRowMeta}>
+                      {w.items?.length || 0} exercises
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+            <View style={{ height: 80 }} />
+          </ScrollView>
+        ) : (
+          <ScrollView style={rmStyles.body} showsVerticalScrollIndicator={false}>
+            {routines.length === 0 ? (
+              <View style={rmStyles.emptyWorkouts}>
+                <Text style={rmStyles.emptyWorkoutsText}>No routines yet. Create one first.</Text>
+              </View>
+            ) : (
+              routines.map((r) => (
+                <View key={r.id} style={[rmStyles.routineRow, r.is_active && rmStyles.routineRowActive]}>
+                  <View style={rmStyles.routineRowInfo}>
+                    {r.is_active && (
+                      <View style={rmStyles.activeBadge}>
+                        <Text style={rmStyles.activeBadgeText}>Active</Text>
+                      </View>
+                    )}
+                    <Text style={[rmStyles.routineRowName, r.is_active && rmStyles.routineRowNameActive]}>
+                      {r.name}
+                    </Text>
+                    <Text style={rmStyles.routineRowMeta}>
+                      {r.workout_ids?.length || 0} workouts
                     </Text>
                   </View>
-                  <Text style={rmStyles.workoutRowMeta}>
-                    {w.items?.length || 0} exercises
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
-          )}
-          <View style={{ height: 80 }} />
-        </ScrollView>
+                  <View style={rmStyles.routineRowActions}>
+                    {!r.is_active && (
+                      <TouchableOpacity
+                        style={rmStyles.setActiveBtn}
+                        onPress={() => onSetActive(r.id)}
+                      >
+                        <Text style={rmStyles.setActiveBtnText}>Set Active</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={[rmStyles.deleteBtn, r.is_active && rmStyles.deleteBtnDisabled]}
+                      onPress={() => !r.is_active && handleDelete(r)}
+                      disabled={r.is_active}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color={r.is_active ? '#ccc' : '#e53935'}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+            <View style={{ height: 80 }} />
+          </ScrollView>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -159,6 +249,58 @@ const rmStyles = StyleSheet.create({
   workoutRowText: { fontSize: 16, color: '#333', marginLeft: 12 },
   workoutRowTextSelected: { color: '#2E7D32', fontWeight: '600' },
   workoutRowMeta: { fontSize: 12, color: '#999' },
+  tabs: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#4CAF50',
+  },
+  tabText: { fontSize: 14, color: '#999', fontWeight: '500' },
+  tabTextActive: { color: '#4CAF50', fontWeight: '700' },
+  routineRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 10,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+  },
+  routineRowActive: { borderColor: '#4CAF50', backgroundColor: '#f1f8f1' },
+  routineRowInfo: { flex: 1 },
+  activeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#4CAF50',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginBottom: 4,
+  },
+  activeBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+  routineRowName: { fontSize: 16, color: '#333', fontWeight: '500' },
+  routineRowNameActive: { color: '#2E7D32', fontWeight: '700' },
+  routineRowMeta: { fontSize: 12, color: '#999', marginTop: 2 },
+  routineRowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  setActiveBtn: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  setActiveBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  deleteBtn: { padding: 6 },
+  deleteBtnDisabled: { opacity: 0.3 },
 });
 
 // ── Workouts Screen ──────────────────────────────────────────────────────────
@@ -172,16 +314,24 @@ const WorkoutsScreen = () => {
   const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState(false);
   const [isRoutineModalVisible, setIsRoutineModalVisible] = useState(false);
 
+  // Keep a ref to the latest workouts so the BLE onConnected closure always
+  // has access to the current list without stale captures.
+  const workoutsRef = useRef([]);
+
   const fetchData = async () => {
     try {
       const [workoutsRes, routinesRes] = await Promise.all([
         WorkoutService.getWorkouts(),
         WorkoutService.getRoutines(),
       ]);
-      setWorkouts(workoutsRes.items || []);
+      const newWorkouts = workoutsRes.items || [];
+      setWorkouts(newWorkouts);
+      workoutsRef.current = newWorkouts;
       setRoutines(routinesRes || []);
+      return newWorkouts;
     } catch (error) {
       console.log('Error fetching data:', error);
+      return workoutsRef.current;
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -190,6 +340,16 @@ const WorkoutsScreen = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Trigger sync whenever the tracker connects
+    bleService.onConnected = () => {
+      syncService.syncOnConnect(workoutsRef.current).catch(e =>
+        console.warn('[Sync] onConnected error:', e.message)
+      );
+    };
+    return () => {
+      bleService.onConnected = null;
+    };
   }, []);
 
   const onRefresh = () => {
@@ -213,6 +373,32 @@ const WorkoutsScreen = () => {
       setRoutines(prev => [...prev, created]);
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to create routine');
+    }
+  };
+
+  // Called by CreateProgramModal with the newly created workout object
+  const handleWorkoutSaveSuccess = async (createdWorkout) => {
+    const newWorkouts = await fetchData();
+    syncService.onWorkoutChanged('upsert', createdWorkout, newWorkouts).catch(e =>
+      console.warn('[Sync] create workout sync error:', e.message)
+    );
+  };
+
+  const handleSetActive = async (routineId) => {
+    try {
+      await WorkoutService.setActiveRoutine(routineId);
+      setRoutines(prev => prev.map(r => ({ ...r, is_active: r.id === routineId })));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to set active routine');
+    }
+  };
+
+  const handleDeleteRoutine = async (routineId) => {
+    try {
+      await WorkoutService.deleteRoutine(routineId);
+      setRoutines(prev => prev.filter(r => r.id !== routineId));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to delete routine');
     }
   };
 
@@ -343,14 +529,17 @@ const WorkoutsScreen = () => {
       <CreateProgramModal
         visible={isWorkoutModalVisible}
         onClose={() => setIsWorkoutModalVisible(false)}
-        onSaveSuccess={onRefresh}
+        onSaveSuccess={handleWorkoutSaveSuccess}
       />
 
       <CreateRoutineModal
         visible={isRoutineModalVisible}
         workouts={workouts}
+        routines={routines}
         onClose={() => setIsRoutineModalVisible(false)}
         onSave={handleRoutineCreated}
+        onSetActive={handleSetActive}
+        onDelete={handleDeleteRoutine}
       />
     </SafeAreaView>
   );

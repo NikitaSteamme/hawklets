@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -6,6 +6,7 @@ import jwt
 from passlib.context import CryptContext
 import os
 import sys
+import shutil
 from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
@@ -285,6 +286,7 @@ async def get_current_user_info(
         display_name=user.get("display_name", ""),
         first_name=user.get("first_name"),
         last_name=user.get("last_name"),
+        avatar_url=user.get("avatar_url"),
         created_at=user.get("created_at", datetime.now(timezone.utc)),
         updated_at=user.get("updated_at", datetime.now(timezone.utc))
     )
@@ -372,3 +374,40 @@ async def delete_user(
         "message": "Account deleted successfully",
         "user_id": current_user["id"]
     }
+
+
+UPLOADS_DIR = Path("/app/uploads/avatars")
+ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post("/me/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """Загрузка аватарки пользователя"""
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG and WebP images are allowed")
+
+    content = await file.read()
+    if len(content) > MAX_SIZE_BYTES:
+        raise HTTPException(status_code=400, detail="File size must not exceed 5 MB")
+
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+    ext = "jpg" if file.content_type == "image/jpeg" else file.content_type.split("/")[-1]
+    filename = f"{current_user['id']}.{ext}"
+    filepath = UPLOADS_DIR / filename
+
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    avatar_url = f"/uploads/avatars/{filename}"
+    await db.users.update_one(
+        {"_id": current_user["id"]},
+        {"$set": {"avatar_url": avatar_url, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    return {"avatar_url": avatar_url}

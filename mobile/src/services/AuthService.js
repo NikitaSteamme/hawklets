@@ -162,6 +162,36 @@ export const AuthService = {
     }
   },
 
+  // Upload avatar
+  uploadAvatar: async (imageUri) => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      const filename = imageUri.split('/').pop();
+      const ext = filename.split('.').pop().toLowerCase();
+      const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+      const formData = new FormData();
+      formData.append('file', { uri: imageUri, name: filename, type: mimeType });
+
+      const response = await fetch(`${API_BASE_URL}/auth/me/avatar`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': API_KEY,
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw { message: result.detail || result.message || 'Upload failed' };
+      }
+      return result;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
   // Delete account
   deleteAccount: async () => {
     try {

@@ -126,9 +126,9 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
         }
       });
 
-      await WorkoutService.createWorkout(title, description, itemsPayload);
+      const created = await WorkoutService.createWorkout(title, description, itemsPayload);
       Alert.alert('Success', 'Workout created successfully!');
-      onSaveSuccess();
+      onSaveSuccess(created);
       onClose();
     } catch (error) {
       Alert.alert('Error', 'Failed to create workout: ' + error.message);

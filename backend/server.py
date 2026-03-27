@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import APIKeyHeader
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -23,12 +24,12 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 try:
-    from backend.routers import auth, exercises, templates, routines, admin_auth, admin_management
+    from backend.routers import auth, exercises, templates, routines, workout_logs, community, admin_auth, admin_management, imu
 except ImportError:
     try:
-        from routers import auth, exercises, templates, routines, admin_auth, admin_management
+        from routers import auth, exercises, templates, routines, workout_logs, community, admin_auth, admin_management, imu
     except ImportError:
-        from .routers import auth, exercises, templates, routines, admin_auth, admin_management
+        from .routers import auth, exercises, templates, routines, workout_logs, community, admin_auth, admin_management, imu
 
 # Configure logging
 logging.basicConfig(
@@ -93,6 +94,9 @@ auth.set_db_connection(db)
 exercises.set_db_connection(db)
 templates.set_db_connection(db)
 routines.set_db_connection(db)
+workout_logs.set_db_connection(db)
+community.set_db_connection(db)
+imu.set_db_connection(db)
 # Set database connection for admin routers
 admin_auth.set_db_connection(db)
 admin_management.set_db_connection(db)
@@ -100,6 +104,9 @@ api_router.include_router(auth.router)
 api_router.include_router(exercises.router)
 api_router.include_router(templates.router)
 api_router.include_router(routines.router)
+api_router.include_router(workout_logs.router)
+api_router.include_router(community.router)
+api_router.include_router(imu.router)
 api_router.include_router(admin_auth.router)
 api_router.include_router(admin_management.router)
 
@@ -225,6 +232,11 @@ async def get_waitlist():
 
 # Include the router in the main app
 app.include_router(api_router)
+
+# Serve uploaded files (avatars, etc.)
+_uploads_dir = Path("/app/uploads")
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

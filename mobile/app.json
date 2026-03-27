@@ -22,6 +22,8 @@
         "NSBluetoothAlwaysUsageDescription": "This app needs Bluetooth to connect to your fitness tracker",
         "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth to connect to your fitness tracker",
         "NSLocationWhenInUseUsageDescription": "This app needs location permission to scan for Bluetooth devices",
+        "NSCameraUsageDescription": "This app needs camera access to take a profile photo",
+        "NSPhotoLibraryUsageDescription": "This app needs photo library access to set a profile photo",
         "UIBackgroundModes": [
           "bluetooth-central",
           "fetch",
@@ -44,14 +46,24 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM"
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "This app needs photo library access to set a profile photo",
+          "cameraPermission": "This app needs camera access to take a profile photo"
+        }
+      ]
     ],
     "runtimeVersion": {
       "policy": "sdkVersion"

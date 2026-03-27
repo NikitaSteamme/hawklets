@@ -8,13 +8,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 // Import screens
 import DashboardScreen from './src/screens/DashboardScreen';
 import WorkoutsScreen from './src/screens/ProgramsScreen';
-import ProgressScreen from './src/screens/ProgressScreen';
+import JournalScreen from './src/screens/ProgressScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegistrationScreen from './src/screens/RegistrationScreen';
 import DeviceConnectionScreen from './src/screens/DeviceConnectionScreen';
-import TrainingAnalyticsScreen from './src/screens/TrainingAnalyticsScreen';
 import notificationsService from './src/services/NotificationsService';
 import AuthService from './src/services/AuthService';
 import { useState, useEffect } from 'react';
@@ -41,12 +40,11 @@ function AccountStack({ onLogout, currentUser, onUserUpdate }) {
   );
 }
 
-// Progress Stack Navigator
-function ProgressStack() {
+// Journal Stack Navigator
+function JournalStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProgressMain" component={ProgressScreen} />
-      <Stack.Screen name="TrainingAnalytics" component={TrainingAnalyticsScreen} />
+      <Stack.Screen name="JournalMain" component={JournalScreen} />
     </Stack.Navigator>
   );
 }
@@ -176,8 +174,8 @@ export default function App() {
                   iconName = focused ? 'home' : 'home-outline';
                 } else if (route.name === 'Workouts') {
                   iconName = focused ? 'barbell' : 'barbell-outline';
-                } else if (route.name === 'Progress') {
-                  iconName = focused ? 'stats-chart' : 'stats-chart-outline';
+                } else if (route.name === 'Journal') {
+                  iconName = focused ? 'journal' : 'journal-outline';
                 } else if (route.name === 'Account') {
                   iconName = focused ? 'person' : 'person-outline';
                 } else if (route.name === 'Community') {
@@ -194,7 +192,7 @@ export default function App() {
               {() => <DashboardScreen currentUser={currentUser} />}
             </Tab.Screen>
             <Tab.Screen name="Workouts" component={WorkoutsScreen} />
-            <Tab.Screen name="Progress" component={ProgressStack} />
+            <Tab.Screen name="Journal" component={JournalStack} />
             <Tab.Screen name="Community" component={CommunityScreen} />
             <Tab.Screen name="Account">
               {() => (
