@@ -22,6 +22,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Dashboard Stack Navigator
+function DashboardStack({ currentUser }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="DashboardMain">
+        {({ navigation }) => (
+          <DashboardScreen currentUser={currentUser} navigation={navigation} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="DeviceConnection" component={DeviceConnectionScreen} />
+    </Stack.Navigator>
+  );
+}
+
 // Account Stack Navigator
 function AccountStack({ onLogout, currentUser, onUserUpdate }) {
   return (
@@ -189,7 +203,7 @@ export default function App() {
             })}
           >
             <Tab.Screen name="Dashboard">
-              {() => <DashboardScreen currentUser={currentUser} />}
+              {() => <DashboardStack currentUser={currentUser} />}
             </Tab.Screen>
             <Tab.Screen name="Workouts" component={WorkoutsScreen} />
             <Tab.Screen name="Journal" component={JournalStack} />

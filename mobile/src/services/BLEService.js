@@ -88,7 +88,9 @@ class BLEService {
         console.error('Scan error:', error);
         return;
       }
-      if (device.name && (device.name.includes('Hawklets') || device.name.includes('Fitness'))) {
+      // Show all devices that have a visible name so the user can pick their tracker.
+      // Anonymous BLE beacons (no name) are skipped to keep the list clean.
+      if (device.name) {
         onDeviceFound(device);
       }
     });

@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LineChart } from 'react-native-chart-kit';
+import bleService from '../services/BLEService';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -28,9 +29,9 @@ const getCurrentDateString = () => {
   return `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
 };
 
-const DashboardScreen = ({ currentUser }) => {
+const DashboardScreen = ({ currentUser, navigation }) => {
   const [streak, setStreak] = useState(7);
-  const [connectedDevice, setConnectedDevice] = useState(true);
+  const [connectedDevice, setConnectedDevice] = useState(bleService.isConnected());
   const [todaySteps, setTodaySteps] = useState(8452);
   const [caloriesBurned, setCaloriesBurned] = useState(420);
   const [activeMinutes, setActiveMinutes] = useState(65);
@@ -62,12 +63,23 @@ const DashboardScreen = ({ currentUser }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Sync BLE connection state with the UI
+  useEffect(() => {
+    const prevCallback = bleService.onConnectionStateChange;
+    bleService.onConnectionStateChange = (isConnected) => {
+      setConnectedDevice(isConnected);
+      if (prevCallback) prevCallback(isConnected);
+    };
+    return () => {
+      bleService.onConnectionStateChange = prevCallback;
+    };
+  }, []);
+
   const handleConnectDevice = () => {
-    setConnectedDevice(!connectedDevice);
+    navigation.navigate('DeviceConnection');
   };
 
   const handleRefresh = () => {
-    // Simulate data refresh
     setTodaySteps(prev => prev + 100);
     setCaloriesBurned(prev => prev + 10);
     setActiveMinutes(prev => prev + 2);
