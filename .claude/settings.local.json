@@ -4,7 +4,12 @@
       "Bash(python scripts/seed_test_data.py)",
       "Bash(docker compose:*)",
       "Bash(npx expo:*)",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''expo'''',{}\\).get\\(''''ios'''',{}\\), indent=2\\)\\)\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''expo'''',{}\\).get\\(''''ios'''',{}\\), indent=2\\)\\)\")",
+      "Bash(echo \"JAVA_HOME=$JAVA_HOME\")",
+      "Bash(echo \"ANDROID_HOME=$ANDROID_HOME\")",
+      "Bash(java -version)",
+      "Bash(cmd /c \"gradlew.bat assembleDebug 2>&1\")",
+      "Bash(cmd /c \"gradlew.bat assembleDebug\")"
     ]
   }
 }
