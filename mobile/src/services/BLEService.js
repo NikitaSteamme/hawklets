@@ -61,25 +61,42 @@ class BLEService {
   }
 
   async requestPermissions() {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
+    if (Platform.OS !== 'android') return true;
+
+    try {
+      // Android 12+ (API 31+) requires BLUETOOTH_SCAN and BLUETOOTH_CONNECT
+      // at runtime in addition to location.
+      if (Platform.Version >= 31) {
+        const results = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Bluetooth Permission',
-            message: 'This app needs location permission to scan for Bluetooth devices.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
+        ]);
+        const allGranted = Object.values(results).every(
+          r => r === PermissionsAndroid.RESULTS.GRANTED
         );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.error('Permission request error:', err);
-        return false;
+        if (!allGranted) {
+          console.warn('BLE permissions not fully granted:', results);
+        }
+        return allGranted;
       }
+
+      // Android < 12 — only location needed
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Bluetooth Permission',
+          message: 'This app needs location permission to scan for Bluetooth devices.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.error('Permission request error:', err);
+      return false;
     }
-    return true;
   }
 
   startScanning(onDeviceFound) {

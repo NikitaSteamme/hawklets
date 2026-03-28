@@ -200,4 +200,4 @@ test_api.js
 
 # TypeScript
 *.tsbuildinfo
-mobile/eas.json
+mobile/eas.json 

@@ -20,9 +20,16 @@ const DeviceConnectionScreen = ({ navigation }) => {
   const [receivedData, setReceivedData] = useState([]);
 
   useEffect(() => {
-    // Request permissions on mount
-    bleService.requestPermissions();
-    
+    // Request permissions before anything else — must be awaited
+    bleService.requestPermissions().then(granted => {
+      if (!granted) {
+        Alert.alert(
+          'Permissions required',
+          'Bluetooth and location permissions are required to scan for devices. Please grant them in Settings.',
+        );
+      }
+    });
+
     // Set up data receiver callback
     bleService.onDataReceived = (data) => {
       if (data) {
