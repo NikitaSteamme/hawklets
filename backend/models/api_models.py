@@ -42,6 +42,8 @@ class UserResponse(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    iron_points: int = 0
+    endurance_points: int = 0
     created_at: datetime
     updated_at: datetime
 

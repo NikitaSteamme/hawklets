@@ -42,16 +42,11 @@ class BLEService {
     // Called once after connection + notifications are fully set up
     this.onConnected = null;
 
-    // Tracker event callbacks — set by the active workout screen
-    this.onRepUpdate   = null; // (repCount, exerciseId) => void
-    this.onSetDone     = null; // (restSec) => void
+    // Tracker event callbacks
+    this.onRepUpdate   = null; // (repCount, exerciseName) => void
+    this.onSetDone     = null; // (restSec, exerciseName, setNum, repsCompleted) => void
     this.onRestEnd     = null; // () => void
     this.onWorkoutDone = null; // () => void
-
-    // Log download state machine
-    this._isDownloading    = false;
-    this._downloadBuffer   = [];
-    this._downloadFilename = null;
   }
 
   // ─── Public API ────────────────────────────────────────────────────────────
@@ -144,9 +139,6 @@ class BLEService {
     }
     this.device = null;
     this._connected = false;
-    this._isDownloading = false;
-    this._downloadBuffer = [];
-    this._downloadFilename = null;
     if (this.onConnectionStateChange) this.onConnectionStateChange(false);
   }
 
@@ -344,45 +336,31 @@ class BLEService {
   _handleTrackerEvent(event) {
     switch (event.e) {
       case 'rep':
-        if (this.onRepUpdate) this.onRepUpdate(event.count ?? 1, event.exercise_id ?? null);
+        // Firmware sends: {"e":"rep","n":repCount,"set":currentSet}
+        if (this.onRepUpdate) this.onRepUpdate(event.n ?? 1, event.ex ?? null);
         break;
       case 'set_done':
-        if (this.onSetDone) this.onSetDone(event.rest_sec ?? 60);
+        // Firmware sends: {"e":"set_done","rest":restSec,"ex":"name","set":N,"reps":N}
+        if (this.onSetDone) this.onSetDone(event.rest ?? 60, event.ex ?? null, event.set ?? 1, event.reps ?? 0);
         break;
       case 'rest_end':
         if (this.onRestEnd) this.onRestEnd();
         break;
       case 'workout_done':
+        // Firmware sends: {"e":"workout_done"} — no log filename
         if (this.onWorkoutDone) this.onWorkoutDone();
-        if (event.log) this._downloadLogsAndUpload(event.log);
         break;
       default:
         console.warn('Unknown tracker event:', event.e);
     }
   }
 
-  // ─── Log download state machine ────────────────────────────────────────────
+  // ─── Command response handler (plain text, not JSON) ───────────────────────
 
   _handleCommandResponse(raw) {
-    if (!this._isDownloading) return;
-    if (raw.trim() === 'END_OF_FILE') {
-      this._isDownloading = false;
-      const content = this._downloadBuffer.join('');
-      const filename = this._downloadFilename;
-      this._downloadBuffer = [];
-      this._downloadFilename = null;
-      this._uploadLogToApi(filename, content);
-    } else {
-      this._downloadBuffer.push(raw);
-    }
-  }
-
-  async _downloadLogsAndUpload(filename) {
-    this._isDownloading = true;
-    this._downloadBuffer = [];
-    this._downloadFilename = filename;
-    console.log('Requesting log download:', filename);
-    await this.sendData(`DOWNLOAD ${filename}`);
+    // Plain-text responses are handled by sendCommand() subscriptions.
+    // This is a no-op fallback for unrecognised plain text from the tracker.
+    console.log('[BLE] plain response:', raw.trim());
   }
 
   async _uploadLogToApi(filename, content) {

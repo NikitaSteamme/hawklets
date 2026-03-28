@@ -314,9 +314,9 @@ const WorkoutsScreen = () => {
   const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState(false);
   const [isRoutineModalVisible, setIsRoutineModalVisible] = useState(false);
 
-  // Keep a ref to the latest workouts so the BLE onConnected closure always
-  // has access to the current list without stale captures.
+  // Keep refs so BLE callbacks always see fresh data without stale captures.
   const workoutsRef = useRef([]);
+  const routinesRef = useRef([]);
 
   const fetchData = async () => {
     try {
@@ -325,9 +325,11 @@ const WorkoutsScreen = () => {
         WorkoutService.getRoutines(),
       ]);
       const newWorkouts = workoutsRes.items || [];
+      const newRoutines = routinesRes || [];
       setWorkouts(newWorkouts);
       workoutsRef.current = newWorkouts;
-      setRoutines(routinesRes || []);
+      setRoutines(newRoutines);
+      routinesRef.current = newRoutines;
       return newWorkouts;
     } catch (error) {
       console.log('Error fetching data:', error);
@@ -341,9 +343,16 @@ const WorkoutsScreen = () => {
   useEffect(() => {
     fetchData();
 
-    // Trigger sync whenever the tracker connects
+    // Trigger sync whenever the tracker connects — only active routine's workouts
     bleService.onConnected = () => {
-      syncService.syncOnConnect(workoutsRef.current).catch(e =>
+      const allWorkouts = workoutsRef.current;
+      const allRoutines = routinesRef.current;
+      const activeRoutine = allRoutines.find(r => r.is_active) ?? allRoutines[0] ?? null;
+      const routineWorkouts = activeRoutine?.workout_ids?.length
+        ? allWorkouts.filter(w => activeRoutine.workout_ids.includes(w.id || w._id))
+        : allWorkouts;
+      console.log('[Sync] Active routine:', activeRoutine?.name, '— workouts:', routineWorkouts.length);
+      syncService.syncOnConnect(routineWorkouts).catch(e =>
         console.warn('[Sync] onConnected error:', e.message)
       );
     };

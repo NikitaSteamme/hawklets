@@ -15,9 +15,12 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegistrationScreen from './src/screens/RegistrationScreen';
 import DeviceConnectionScreen from './src/screens/DeviceConnectionScreen';
 import notificationsService from './src/services/NotificationsService';
+import bleService from './src/services/BLEService';
 import AuthService from './src/services/AuthService';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hawklets.com/api';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -69,9 +72,96 @@ export default function App() {
   const [showRegistration, setShowRegistration] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // ── Tracker session state (accumulated set_done events for IP calc) ──────────
+  const sessionSetsRef = useRef([]); // [{ ex, reps }]
+
+  // Send accumulated session IP to backend and log the workout
+  const submitWorkoutSession = async () => {
+    const sets = sessionSetsRef.current;
+    sessionSetsRef.current = [];
+    if (sets.length === 0) return;
+
+    try {
+      const token = await AsyncStorage.getItem('accessToken') || await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      // IP = sum of reps across all sets (weight unknown from BLE — tracker tracks reps only)
+      const totalReps = sets.reduce((sum, s) => sum + (s.reps || 0), 0);
+      const ironPoints = totalReps; // 1 IP per rep; weight-based calc requires manual log
+
+      if (ironPoints > 0) {
+        await fetch(`${API_BASE_URL}/auth/me/points`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ iron_points: ironPoints, endurance_points: 0 }),
+        });
+        console.log('[Session] Awarded', ironPoints, 'IP');
+      }
+
+      // Log workout completion
+      const exerciseNames = [...new Set(sets.map(s => s.ex).filter(Boolean))];
+      await fetch(`${API_BASE_URL}/workout-logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          workout_name: exerciseNames.length > 0
+            ? `Tracker workout (${exerciseNames.slice(0, 2).join(', ')}${exerciseNames.length > 2 ? '...' : ''})`
+            : 'Tracker workout',
+          notes: `${sets.length} sets completed via tracker`,
+        }),
+      });
+    } catch (e) {
+      console.error('[Session] Submit error:', e.message);
+    }
+  };
+
+  // ── Wire BLE tracker event callbacks ─────────────────────────────────────────
+  useEffect(() => {
+    bleService.onSetDone = (restSec, exerciseName, setNum, repsCompleted) => {
+      // Accumulate for IP calculation
+      sessionSetsRef.current = [...sessionSetsRef.current, { ex: exerciseName, reps: repsCompleted }];
+
+      const exLabel = exerciseName ? ` · ${exerciseName}` : '';
+      notificationsService.sendImmediateNotification(
+        `Set ${setNum} complete${exLabel}`,
+        `${repsCompleted} reps done. Rest ${restSec}s`,
+        { type: 'set_done' },
+      ).catch(() => {});
+    };
+
+    bleService.onRestEnd = () => {
+      notificationsService.sendImmediateNotification(
+        'Rest complete!',
+        'Time for your next set.',
+        { type: 'rest_end' },
+      ).catch(() => {});
+    };
+
+    bleService.onWorkoutDone = () => {
+      notificationsService.sendImmediateNotification(
+        'Workout complete!',
+        'Great work! Saving your session...',
+        { type: 'workout_done' },
+      ).catch(() => {});
+      submitWorkoutSession();
+    };
+
+    return () => {
+      bleService.onSetDone = null;
+      bleService.onRestEnd = null;
+      bleService.onWorkoutDone = null;
+    };
+  }, []);
+
   useEffect(() => {
     checkLoginStatus();
-    
+
     // Setup notification listeners
     notificationsService.setupNotificationListeners(
       (notification) => {

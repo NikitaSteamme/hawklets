@@ -58,6 +58,11 @@ class DeleteAccountRequest(BaseModel):
     """Модель для подтверждения удаления аккаунта"""
     confirm: bool = True
 
+class PointsRequest(BaseModel):
+    """Модель для начисления очков"""
+    iron_points: int = 0
+    endurance_points: int = 0
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверяет пароль"""
@@ -287,9 +292,38 @@ async def get_current_user_info(
         first_name=user.get("first_name"),
         last_name=user.get("last_name"),
         avatar_url=user.get("avatar_url"),
+        iron_points=user.get("iron_points", 0),
+        endurance_points=user.get("endurance_points", 0),
         created_at=user.get("created_at", datetime.now(timezone.utc)),
         updated_at=user.get("updated_at", datetime.now(timezone.utc))
     )
+
+
+@router.post("/me/points")
+async def add_points(
+    points: PointsRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """Начислить очки пользователю (IP / EP) после завершения тренировки"""
+    if points.iron_points == 0 and points.endurance_points == 0:
+        return {"iron_points": 0, "endurance_points": 0}
+
+    inc = {}
+    if points.iron_points:
+        inc["iron_points"] = points.iron_points
+    if points.endurance_points:
+        inc["endurance_points"] = points.endurance_points
+
+    await db.users.update_one(
+        {"_id": current_user["id"]},
+        {"$inc": inc},
+    )
+    user = await db.users.find_one({"_id": current_user["id"]})
+    return {
+        "iron_points": user.get("iron_points", 0),
+        "endurance_points": user.get("endurance_points", 0),
+    }
 
 
 @router.put("/update", response_model=UserResponse)
@@ -342,6 +376,8 @@ async def update_user(
         display_name=updated_user.get("display_name", ""),
         first_name=updated_user.get("first_name"),
         last_name=updated_user.get("last_name"),
+        iron_points=updated_user.get("iron_points", 0),
+        endurance_points=updated_user.get("endurance_points", 0),
         created_at=updated_user.get("created_at", datetime.now(timezone.utc)),
         updated_at=updated_user.get("updated_at", datetime.now(timezone.utc))
     )
