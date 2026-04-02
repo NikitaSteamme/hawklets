@@ -47,6 +47,10 @@ class BLEService {
     this.onSetDone     = null; // (restSec, exerciseName, setNum, repsCompleted) => void
     this.onRestEnd     = null; // () => void
     this.onWorkoutDone = null; // () => void
+
+    // Single-slot for the currently-awaited command response.
+    // sendCommand / uploadFile set this instead of creating a second subscription.
+    this._pendingCommandHandler = null;
   }
 
   // ─── Public API ────────────────────────────────────────────────────────────
@@ -115,9 +119,17 @@ class BLEService {
   async connectToDevice(deviceId) {
     try {
       this.device = await this.manager.connectToDevice(deviceId);
+      // Negotiate larger MTU so firmware's 100-byte BLE notifications arrive intact.
+      // Default MTU is 23 bytes (20 usable); without this, chunks are silently truncated.
+      try {
+        await this.device.requestMTU(512);
+        console.log('MTU negotiated');
+      } catch (mtuErr) {
+        console.warn('MTU negotiation failed (continuing):', mtuErr.message);
+      }
       await this.device.discoverAllServicesAndCharacteristics();
       this._connected = true;
-      this._setupNotifications();
+      await this._setupNotifications();
       if (this.onConnectionStateChange) this.onConnectionStateChange(true);
       if (this.onConnected) this.onConnected();
       console.log('Connected to device:', deviceId);
@@ -139,6 +151,7 @@ class BLEService {
     }
     this.device = null;
     this._connected = false;
+    this._pendingCommandHandler = null;
     if (this.onConnectionStateChange) this.onConnectionStateChange(false);
   }
 
@@ -158,43 +171,31 @@ class BLEService {
    *   - a line is "END"
    *   - a line starts with OK:, FAIL:, or CRC32:
    *   - timeout (COMMAND_TIMEOUT_MS)
-   * Returns an array of response lines.
+   *
+   * Creates its own subscription for the duration of the command so it works
+   * independently of the persistent _setupNotifications subscription.
    */
   sendCommand(command) {
     return new Promise((resolve, reject) => {
       const lines = [];
-      let subscription;
       const timer = setTimeout(() => {
-        subscription?.remove();
+        this._pendingCommandHandler = null;
         reject(new Error(`BLE command timeout: ${command}`));
       }, COMMAND_TIMEOUT_MS);
 
-      subscription = this.device.monitorCharacteristicForService(
-        this.SERVICE,
-        this.TX_CHAR,
-        (err, char) => {
-          if (err) {
-            clearTimeout(timer);
-            reject(err);
-            return;
-          }
-          const line = this._decodeBase64(char.value)?.trim() ?? '';
-          lines.push(line);
-
-          if (
-            line === 'END' ||
-            line.startsWith('OK:') ||
-            line.startsWith('FAIL:') ||
-            line.startsWith('CRC32:') ||
-            line === 'OK:MUTED' ||
-            line === 'OK:UNMUTED'
-          ) {
-            clearTimeout(timer);
-            subscription.remove();
-            resolve(lines);
-          }
-        },
-      );
+      this._pendingCommandHandler = (line) => {
+        lines.push(line);
+        if (
+          line === 'END' ||
+          line.startsWith('OK:') ||
+          line.startsWith('FAIL:') ||
+          line.startsWith('CRC32:')
+        ) {
+          clearTimeout(timer);
+          this._pendingCommandHandler = null;
+          resolve(lines);
+        }
+      };
 
       this.device
         .writeCharacteristicWithResponseForService(
@@ -204,7 +205,7 @@ class BLEService {
         )
         .catch(err => {
           clearTimeout(timer);
-          subscription?.remove();
+          this._pendingCommandHandler = null;
           reject(err);
         });
     });
@@ -217,29 +218,22 @@ class BLEService {
   async uploadFile(filename, content) {
     // Send UPLOAD command and wait for READY
     await new Promise((resolve, reject) => {
-      let subscription;
       const timer = setTimeout(() => {
-        subscription?.remove();
+        this._pendingCommandHandler = null;
         reject(new Error('Upload READY timeout'));
       }, 5000);
 
-      subscription = this.device.monitorCharacteristicForService(
-        this.SERVICE,
-        this.TX_CHAR,
-        (err, char) => {
-          if (err) { clearTimeout(timer); reject(err); return; }
-          const msg = this._decodeBase64(char.value)?.trim() ?? '';
-          if (msg === 'READY') {
-            clearTimeout(timer);
-            subscription.remove();
-            resolve();
-          } else if (msg.startsWith('FAIL:')) {
-            clearTimeout(timer);
-            subscription.remove();
-            reject(new Error(msg));
-          }
-        },
-      );
+      this._pendingCommandHandler = (msg) => {
+        if (msg === 'READY') {
+          clearTimeout(timer);
+          this._pendingCommandHandler = null;
+          resolve();
+        } else if (msg.startsWith('FAIL:')) {
+          clearTimeout(timer);
+          this._pendingCommandHandler = null;
+          reject(new Error(msg));
+        }
+      };
 
       this.device
         .writeCharacteristicWithResponseForService(
@@ -247,7 +241,11 @@ class BLEService {
           this.RX_CHAR,
           this._encodeBase64(`UPLOAD ${filename}`),
         )
-        .catch(err => { clearTimeout(timer); subscription?.remove(); reject(err); });
+        .catch(err => {
+          clearTimeout(timer);
+          this._pendingCommandHandler = null;
+          reject(err);
+        });
     });
 
     // Send content in chunks
@@ -294,16 +292,29 @@ class BLEService {
     if (this.manager) this.manager.destroy();
   }
 
-  // ─── Persistent notification listener ──────────────────────────────────────
+  // ─── Single persistent notification subscription ───────────────────────────
+  //
+  // ONE subscription handles everything to avoid ble-plx multi-monitor conflicts.
+  // Returns a Promise resolved once the CCCD write is confirmed (first callback
+  // fires, or 600 ms safety timeout) so callers can await before sending commands.
 
-  async _setupNotifications() {
-    try {
-      await this.device.monitorCharacteristicForService(
+  _setupNotifications() {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const resolveOnce = () => { if (!resolved) { resolved = true; resolve(); } };
+      const fallback = setTimeout(resolveOnce, 600);
+
+      this.device.monitorCharacteristicForService(
         this.SERVICE,
         this.TX_CHAR,
         (error, characteristic) => {
+          // Any callback (including errors) confirms CCCD write completed
+          clearTimeout(fallback);
+          resolveOnce();
+
           if (error) {
             console.error('Notification error:', error);
+            this._pendingCommandHandler = null;
             return;
           }
           if (!characteristic?.value) return;
@@ -311,24 +322,27 @@ class BLEService {
           const raw = this._decodeBase64(characteristic.value);
           if (!raw) return;
 
-          // Always fire raw callback (DeviceConnectionScreen log pane)
           if (this.onDataReceived) this.onDataReceived(raw);
 
-          if (raw.trimStart().startsWith('{')) {
+          const trimmed = raw.trim();
+
+          // If a command is in-flight, forward to its handler
+          if (this._pendingCommandHandler) {
+            this._pendingCommandHandler(trimmed);
+            return;
+          }
+
+          // Otherwise dispatch JSON tracker events
+          if (trimmed.startsWith('{')) {
             try {
-              const event = JSON.parse(raw);
-              this._handleTrackerEvent(event);
+              this._handleTrackerEvent(JSON.parse(trimmed));
             } catch (e) {
               console.warn('BLE JSON parse error:', e.message);
             }
-          } else {
-            this._handleCommandResponse(raw);
           }
-        }
+        },
       );
-    } catch (error) {
-      console.error('Setup notifications error:', error);
-    }
+    });
   }
 
   // ─── Tracker event dispatcher ───────────────────────────────────────────────
@@ -350,18 +364,15 @@ class BLEService {
         // Firmware sends: {"e":"workout_done"} — no log filename
         if (this.onWorkoutDone) this.onWorkoutDone();
         break;
+      case 'ex_start':
+        // Informational — tracker started an exercise; no action needed on mobile
+        console.log('[BLE] ex_start:', event.ex, 'set', event.set);
+        break;
       default:
         console.warn('Unknown tracker event:', event.e);
     }
   }
 
-  // ─── Command response handler (plain text, not JSON) ───────────────────────
-
-  _handleCommandResponse(raw) {
-    // Plain-text responses are handled by sendCommand() subscriptions.
-    // This is a no-op fallback for unrecognised plain text from the tracker.
-    console.log('[BLE] plain response:', raw.trim());
-  }
 
   async _uploadLogToApi(filename, content) {
     try {
@@ -389,12 +400,31 @@ class BLEService {
 
   _decodeBase64(base64String) {
     try {
+      // atob is available in Hermes; TextDecoder is not — decode UTF-8 manually
       const binaryString = atob(base64String);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      let result = '';
+      let i = 0;
+      while (i < binaryString.length) {
+        const byte1 = binaryString.charCodeAt(i++);
+        if (byte1 < 0x80) {
+          result += String.fromCharCode(byte1);
+        } else if (byte1 < 0xE0) {
+          const byte2 = binaryString.charCodeAt(i++) & 0x3F;
+          result += String.fromCharCode(((byte1 & 0x1F) << 6) | byte2);
+        } else if (byte1 < 0xF0) {
+          const byte2 = binaryString.charCodeAt(i++) & 0x3F;
+          const byte3 = binaryString.charCodeAt(i++) & 0x3F;
+          result += String.fromCharCode(((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3);
+        } else {
+          // 4-byte sequence → encode as surrogate pair
+          const byte2 = binaryString.charCodeAt(i++) & 0x3F;
+          const byte3 = binaryString.charCodeAt(i++) & 0x3F;
+          const byte4 = binaryString.charCodeAt(i++) & 0x3F;
+          const codePoint = (((byte1 & 0x07) << 18) | (byte2 << 12) | (byte3 << 6) | byte4) - 0x10000;
+          result += String.fromCharCode(0xD800 + (codePoint >> 10), 0xDC00 + (codePoint & 0x3FF));
+        }
       }
-      return new TextDecoder().decode(bytes);
+      return result;
     } catch (e) {
       console.error('BLE decode error:', e);
       return null;
@@ -403,11 +433,27 @@ class BLEService {
 
   _encodeBase64(text) {
     try {
-      const encoder = new TextEncoder();
-      const bytes = encoder.encode(text);
+      // Encode string to UTF-8 bytes manually (TextEncoder not available in Hermes)
       let binary = '';
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      for (let i = 0; i < text.length; i++) {
+        let code = text.charCodeAt(i);
+        // Handle surrogate pairs
+        if (code >= 0xD800 && code <= 0xDBFF && i + 1 < text.length) {
+          const low = text.charCodeAt(i + 1);
+          if (low >= 0xDC00 && low <= 0xDFFF) {
+            code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00);
+            i++;
+          }
+        }
+        if (code < 0x80) {
+          binary += String.fromCharCode(code);
+        } else if (code < 0x800) {
+          binary += String.fromCharCode(0xC0 | (code >> 6), 0x80 | (code & 0x3F));
+        } else if (code < 0x10000) {
+          binary += String.fromCharCode(0xE0 | (code >> 12), 0x80 | ((code >> 6) & 0x3F), 0x80 | (code & 0x3F));
+        } else {
+          binary += String.fromCharCode(0xF0 | (code >> 18), 0x80 | ((code >> 12) & 0x3F), 0x80 | ((code >> 6) & 0x3F), 0x80 | (code & 0x3F));
+        }
       }
       return btoa(binary);
     } catch (error) {

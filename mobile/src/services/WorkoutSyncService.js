@@ -48,16 +48,21 @@ export function formatWorkoutForTracker(apiWorkout) {
     rawExercises = apiWorkout.exercises;
   } else {
     // Map from our API items format
-    rawExercises = (apiWorkout.items ?? []).map(item => ({
-      name: item.exercise_name || item.exercise_id,
-      // Default to 'imu' (IMU-tracked reps) unless explicitly set
-      type: item.exercise_type || (item.target_duration_sec ? 'timed' : 'imu'),
-      sets: item.target_sets ?? 3,
-      restAfterSetSec: item.rest_sec ?? 90,
-      reps: item.target_reps_max ?? item.target_reps_min ?? 10,
-      durationSec: item.target_duration_sec ?? null,
-      inactivityTimeoutMs: 45000,
-    }));
+    rawExercises = (apiWorkout.items ?? []).map(item => {
+      // exercise_type comes from exercises_global.default_tracking.type (populated by backend)
+      // Fall back to duration-based heuristic only if type is completely absent
+      const type = item.exercise_type || (item.target_duration_sec ? 'timed' : 'imu');
+      console.log(`[Sync] Exercise "${item.exercise_name || item.exercise_id}": type=${type} (exercise_type=${item.exercise_type}, duration=${item.target_duration_sec})`);
+      return {
+        name: item.exercise_name || item.exercise_id,
+        type,
+        sets: item.target_sets ?? 3,
+        restAfterSetSec: item.rest_sec ?? 90,
+        reps: item.target_reps_max ?? item.target_reps_min ?? 10,
+        durationSec: item.target_duration_sec ?? null,
+        inactivityTimeoutMs: 45000,
+      };
+    });
   }
 
   const tracker = {
@@ -99,10 +104,14 @@ export function formatWorkoutForTracker(apiWorkout) {
 
 /**
  * Возвращает стабильное имя файла для тренировки на трекере.
- * Используем ID чтобы переименование тайтла не создавало дубликаты.
+ * SPIFFS на ESP32 поддерживает максимум 31 символ включая ведущий '/'.
+ * Берём первые 24 символа UUID (без дефисов) → "w_" + 24 + ".json" = 30 символов.
  */
 export function workoutFilename(workoutId) {
-  return `w_${workoutId}.json`;
+  // SPIFFS on ESP32 allows max 31 chars for the full path including leading '/'.
+  // '/w_' (3) + id (20) + '.json' (5) = 28 chars — safely under the limit.
+  const short = String(workoutId).replace(/-/g, '').slice(0, 20);
+  return `w_${short}.json`;
 }
 
 // ─── Основной сервис синхронизации ───────────────────────────────────────────
@@ -174,6 +183,7 @@ export class WorkoutSyncService {
       console.log('[Sync] Sync complete');
     } catch (err) {
       console.error('[Sync] Sync error:', err.message);
+      throw err; // propagate so the caller can show the failure alert
     }
   }
 
@@ -203,11 +213,17 @@ export class WorkoutSyncService {
   // ─── Парсинг ответа LIST_DETAIL ─────────────────────────────────────────
 
   async _listDetail() {
-    const lines = await this.ble.sendCommand('LIST_DETAIL');
+    const chunks = await this.ble.sendCommand('LIST_DETAIL');
+
+    // Firmware sends LIST_DETAIL as 100-char BLE notifications, with \n-separated
+    // entries inside each chunk. A single entry may span two chunks.
+    // Concatenate all chunks (excluding the terminal "END") then split on newlines.
+    const rawText = chunks.filter(c => c !== 'END').join('');
     const files = [];
-    for (const line of lines) {
-      if (line === 'END' || line === '') continue;
-      const parts = line.split(':');
+    for (const line of rawText.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const parts = trimmed.split(':');
       if (parts.length === 3) {
         files.push({
           name: parts[0],

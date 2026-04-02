@@ -69,7 +69,6 @@ async def get_global_exercises(
     
     exercises = await db.exercises_global.find(
         filters,
-        {"_id": 0}
     ).skip(skip).limit(limit).to_list(length=limit)
     
     return [ExerciseGlobal.from_mongo(ex) for ex in exercises]
@@ -78,7 +77,7 @@ async def get_global_exercises(
 @router.get("/global/{exercise_id}", response_model=ExerciseGlobal)
 async def get_global_exercise(exercise_id: str):
     """Получение конкретного глобального упражнения"""
-    exercise = await db.exercises_global.find_one({"_id": exercise_id}, {"_id": 0})
+    exercise = await db.exercises_global.find_one({"_id": exercise_id})
     if not exercise:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

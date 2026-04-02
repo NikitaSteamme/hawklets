@@ -14,35 +14,58 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import WorkoutService from '../services/ProgramService';
 
-const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
+// editWorkout: existing workout object to edit (null = create mode)
+const CreateProgramModal = ({ visible, onClose, onSaveSuccess, editWorkout = null }) => {
+  const isEditMode = !!editWorkout;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [globalRestSec, setGlobalRestSec] = useState('60');
-  
+
   const [availableExercises, setAvailableExercises] = useState([]);
   const [selectedExercises, setSelectedExercises] = useState([]);
-  
+
   // Filtering States
   const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState('All');
   const [selectedMuscle, setSelectedMuscle] = useState('All');
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const [showExercisePicker, setShowExercisePicker] = useState(false);
 
   useEffect(() => {
     if (visible) {
       fetchExercises();
-      setTitle('');
-      setDescription('');
-      setGlobalRestSec('60');
-      setSelectedExercises([]);
       setShowExercisePicker(false);
       setSearchText('');
       setSelectedType('All');
       setSelectedMuscle('All');
+
+      if (isEditMode) {
+        setTitle(editWorkout.title || '');
+        setDescription(editWorkout.description || '');
+        // Pre-populate exercises from existing workout items
+        const prefilled = (editWorkout.items || []).map((item, idx) => ({
+          id: `existing-${idx}`,
+          exercise: { id: item.exercise_id, name: item.exercise_name || item.exercise_id },
+          trackingType: item.target_duration_sec ? 'Timed' : 'IMU',
+          sets: String(item.target_sets ?? 3),
+          repsMin: String(item.target_reps_min ?? 8),
+          repsMax: String(item.target_reps_max ?? 12),
+          restSec: String(item.rest_sec ?? 60),
+          weightKg: item.target_weight_kg != null ? String(item.target_weight_kg) : '',
+          durationSec: String(item.target_duration_sec ?? 60),
+        }));
+        setSelectedExercises(prefilled);
+        setGlobalRestSec('60');
+      } else {
+        setTitle('');
+        setDescription('');
+        setGlobalRestSec('60');
+        setSelectedExercises([]);
+      }
     }
   }, [visible]);
 
@@ -59,20 +82,21 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
   };
 
   const handleAddExercise = (exercise) => {
-    // Default form fields depending on exercise type
-    const trackingType = exercise.default_tracking?.type || 'IMU';
-    
+    // Normalize type: API returns lowercase 'imu'/'timed', we use uppercase internally
+    const rawType = exercise.default_tracking?.type || 'imu';
+    const trackingType = rawType.toLowerCase() === 'timed' ? 'Timed' : 'IMU';
+
     setSelectedExercises([
       ...selectedExercises,
       {
         exercise: exercise,
         id: Math.random().toString(),
-        trackingType: trackingType,
+        trackingType,
         sets: '3',
         repsMin: '8',
         repsMax: '12',
         restSec: globalRestSec,
-        weightKg: '0',
+        weightKg: '',
         durationSec: '60',
       }
     ]);
@@ -104,7 +128,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
       setIsSaving(true);
       const itemsPayload = selectedExercises.map((ex, index) => {
         const base = {
-          exercise_id: ex.exercise._id || ex.exercise.name, // backend prefers ID if available, using name/id
+          exercise_id: ex.exercise.id || ex.exercise.name,
           order_index: index,
           rest_sec: parseInt(ex.restSec) || parseInt(globalRestSec) || 60,
         };
@@ -126,9 +150,19 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
         }
       });
 
-      const created = await WorkoutService.createWorkout(title, description, itemsPayload);
-      Alert.alert('Success', 'Workout created successfully!');
-      onSaveSuccess(created);
+      let saved;
+      if (isEditMode) {
+        saved = await WorkoutService.updateWorkout(editWorkout.id || editWorkout._id, {
+          title,
+          description,
+          items: itemsPayload,
+        });
+        Alert.alert('Success', 'Workout updated successfully!');
+      } else {
+        saved = await WorkoutService.createWorkout(title, description, itemsPayload);
+        Alert.alert('Success', 'Workout created successfully!');
+      }
+      onSaveSuccess(saved);
       onClose();
     } catch (error) {
       Alert.alert('Error', 'Failed to create workout: ' + error.message);
@@ -161,7 +195,7 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
           <TouchableOpacity onPress={onClose} style={styles.iconButton}>
             <Ionicons name="close" size={28} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Workout</Text>
+          <Text style={styles.headerTitle}>{isEditMode ? 'Edit Workout' : 'New Workout'}</Text>
           <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.iconButton}>
             <Ionicons name="checkmark-sharp" size={28} color="#4CAF50" />
           </TouchableOpacity>
@@ -295,35 +329,45 @@ const CreateProgramModal = ({ visible, onClose, onSaveSuccess }) => {
                   </View>
 
                   {item.trackingType === 'IMU' ? (
-                    <View style={styles.exerciseFieldsRow}>
-                      <View style={styles.flexField}>
-                        <Text style={styles.fieldLabel}>Sets</Text>
-                        <TextInput style={styles.smallInput} keyboardType="numeric" value={item.sets} onChangeText={(v) => updateExerciseField(item.id, 'sets', v)} />
+                    <>
+                      <View style={styles.exerciseFieldsRow}>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Sets</Text>
+                          <TextInput style={styles.smallInput} keyboardType="numeric" value={item.sets} onChangeText={(v) => updateExerciseField(item.id, 'sets', v)} />
+                        </View>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Reps</Text>
+                          <TextInput style={styles.smallInput} keyboardType="numeric" value={item.repsMin} onChangeText={(v) => setSelectedExercises(prev => prev.map(ex => ex.id === item.id ? { ...ex, repsMin: v, repsMax: v } : ex))} />
+                        </View>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Rest (s)</Text>
+                          <TextInput style={styles.smallInput} keyboardType="numeric" value={item.restSec} onChangeText={(v) => updateExerciseField(item.id, 'restSec', v)} />
+                        </View>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Weight (kg)</Text>
+                          <TextInput style={styles.smallInput} keyboardType="decimal-pad" placeholder="—" value={item.weightKg} onChangeText={(v) => updateExerciseField(item.id, 'weightKg', v)} />
+                        </View>
                       </View>
-                      <View style={styles.flexField}>
-                        <Text style={styles.fieldLabel}>Reps</Text>
-                        <TextInput style={styles.smallInput} keyboardType="numeric" value={item.repsMin} onChangeText={(v) => updateExerciseField(item.id, 'repsMin', v)} />
-                      </View>
-                      <View style={styles.flexField}>
-                        <Text style={styles.fieldLabel}>Rest (s)</Text>
-                        <TextInput style={styles.smallInput} keyboardType="numeric" value={item.restSec} onChangeText={(v) => updateExerciseField(item.id, 'restSec', v)} />
-                      </View>
-                      <View style={styles.flexField}>
-                        <Text style={styles.fieldLabel}>Weight (kg)</Text>
-                        <TextInput style={styles.smallInput} keyboardType="numeric" value={item.weightKg} onChangeText={(v) => updateExerciseField(item.id, 'weightKg', v)} />
-                      </View>
-                    </View>
+                      <Text style={styles.typeTag}>Weights / Reps (IMU)</Text>
+                    </>
                   ) : (
-                    <View style={styles.exerciseFieldsRow}>
-                      <View style={styles.flexField}>
-                        <Text style={styles.fieldLabel}>Duration (s)</Text>
-                        <TextInput style={styles.smallInput} keyboardType="numeric" value={item.durationSec} onChangeText={(v) => updateExerciseField(item.id, 'durationSec', v)} />
+                    <>
+                      <View style={styles.exerciseFieldsRow}>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Sets</Text>
+                          <TextInput style={styles.smallInput} keyboardType="numeric" value={item.sets} onChangeText={(v) => updateExerciseField(item.id, 'sets', v)} />
+                        </View>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Duration (s)</Text>
+                          <TextInput style={styles.smallInput} keyboardType="numeric" value={item.durationSec} onChangeText={(v) => updateExerciseField(item.id, 'durationSec', v)} />
+                        </View>
+                        <View style={styles.flexField}>
+                          <Text style={styles.fieldLabel}>Rest After (s)</Text>
+                          <TextInput style={styles.smallInput} keyboardType="numeric" value={item.restSec} onChangeText={(v) => updateExerciseField(item.id, 'restSec', v)} />
+                        </View>
                       </View>
-                      <View style={styles.flexField}>
-                        <Text style={styles.fieldLabel}>Rest After (s)</Text>
-                        <TextInput style={styles.smallInput} keyboardType="numeric" value={item.restSec} onChangeText={(v) => updateExerciseField(item.id, 'restSec', v)} />
-                      </View>
-                    </View>
+                      <Text style={styles.typeTag}>Timed</Text>
+                    </>
                   )}
                 </View>
               ))
@@ -535,7 +579,13 @@ const styles = StyleSheet.create({
   cancelPickerBtnText: {
     fontWeight: 'bold',
     color: '#333',
-  }
+  },
+  typeTag: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
 });
 
 export default CreateProgramModal;

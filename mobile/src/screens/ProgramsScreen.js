@@ -313,6 +313,7 @@ const WorkoutsScreen = () => {
 
   const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState(false);
   const [isRoutineModalVisible, setIsRoutineModalVisible] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState(null);
 
   // Keep refs so BLE callbacks always see fresh data without stale captures.
   const workoutsRef = useRef([]);
@@ -352,9 +353,15 @@ const WorkoutsScreen = () => {
         ? allWorkouts.filter(w => activeRoutine.workout_ids.includes(w.id || w._id))
         : allWorkouts;
       console.log('[Sync] Active routine:', activeRoutine?.name, '— workouts:', routineWorkouts.length);
-      syncService.syncOnConnect(routineWorkouts).catch(e =>
-        console.warn('[Sync] onConnected error:', e.message)
-      );
+
+      if (routineWorkouts.length === 0) {
+        Alert.alert('Tracker connected', 'No workouts to sync. Create workouts and add them to an active routine first.');
+        return;
+      }
+
+      syncService.syncOnConnect(routineWorkouts)
+        .then(() => Alert.alert('Tracker synced', `${routineWorkouts.length} workout(s) from "${activeRoutine?.name ?? 'your routine'}" synced.`))
+        .catch(e => Alert.alert('Sync failed', e.message || 'Could not sync workouts to tracker.'));
     };
     return () => {
       bleService.onConnected = null;
@@ -402,6 +409,28 @@ const WorkoutsScreen = () => {
     }
   };
 
+  const handleDeleteWorkout = (workout) => {
+    Alert.alert(
+      'Delete Workout',
+      `Delete "${workout.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive', onPress: async () => {
+            try {
+              const id = workout.id || workout._id;
+              await WorkoutService.deleteWorkout(id);
+              const newWorkouts = await fetchData();
+              syncService.onWorkoutChanged('delete', workout, newWorkouts).catch(() => {});
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to delete workout');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleDeleteRoutine = async (routineId) => {
     try {
       await WorkoutService.deleteRoutine(routineId);
@@ -417,7 +446,12 @@ const WorkoutsScreen = () => {
     const s = getStyling(index);
     const exerciseCount = item.items?.length || 0;
     return (
-      <TouchableOpacity style={styles.workoutCard}>
+      <TouchableOpacity
+        style={styles.workoutCard}
+        onPress={() => { setEditingWorkout(item); setIsWorkoutModalVisible(true); }}
+        onLongPress={() => handleDeleteWorkout(item)}
+        delayLongPress={500}
+      >
         <LinearGradient
           colors={[s.color + '20', s.color + '40']}
           style={styles.workoutGradient}
@@ -537,8 +571,9 @@ const WorkoutsScreen = () => {
 
       <CreateProgramModal
         visible={isWorkoutModalVisible}
-        onClose={() => setIsWorkoutModalVisible(false)}
+        onClose={() => { setIsWorkoutModalVisible(false); setEditingWorkout(null); }}
         onSaveSuccess={handleWorkoutSaveSuccess}
+        editWorkout={editingWorkout}
       />
 
       <CreateRoutineModal

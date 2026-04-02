@@ -57,8 +57,9 @@ def set_db_connection(database):
 async def _populate_exercise_names(workout_docs: list) -> list:
     """
     One-shot batch query: collect all unique exercise_ids across all workout
-    documents, fetch their names from exercises_global, then attach
-    exercise_name to every item dict.  Falls back to exercise_id if not found.
+    documents, fetch their names and default_tracking.type from exercises_global,
+    then attach exercise_name and exercise_type to every item dict.
+    Falls back to exercise_id / None if not found.
     """
     all_ids = list({
         item["exercise_id"]
@@ -70,16 +71,33 @@ async def _populate_exercise_names(workout_docs: list) -> list:
 
     exercises = await db.exercises_global.find(
         {"_id": {"$in": all_ids}},
-        {"_id": 1, "name": 1}
+        {"_id": 1, "name": 1, "default_tracking": 1}
     ).to_list(length=len(all_ids))
 
-    name_map = {ex["_id"]: ex["name"] for ex in exercises}
+    # id → {name, type}
+    ex_map = {ex["_id"]: {
+        "name": ex["name"],
+        "type": (ex.get("default_tracking") or {}).get("type", "imu").lower(),
+    } for ex in exercises}
+
+    # Fallback: legacy workouts that stored exercise name as exercise_id
+    missing = [eid for eid in all_ids if eid not in ex_map]
+    if missing:
+        by_name = await db.exercises_global.find(
+            {"name": {"$in": missing}},
+            {"_id": 1, "name": 1, "default_tracking": 1}
+        ).to_list(length=len(missing))
+        for ex in by_name:
+            ex_map[ex["name"]] = {
+                "name": ex["name"],
+                "type": (ex.get("default_tracking") or {}).get("type", "imu").lower(),
+            }
 
     for w in workout_docs:
         for item in w.get("items", []):
-            item["exercise_name"] = name_map.get(
-                item["exercise_id"], item["exercise_id"]
-            )
+            info = ex_map.get(item["exercise_id"])
+            item["exercise_name"] = info["name"] if info else item["exercise_id"]
+            item["exercise_type"] = info["type"] if info else None
 
     return workout_docs
 

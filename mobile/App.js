@@ -16,6 +16,7 @@ import RegistrationScreen from './src/screens/RegistrationScreen';
 import DeviceConnectionScreen from './src/screens/DeviceConnectionScreen';
 import notificationsService from './src/services/NotificationsService';
 import bleService from './src/services/BLEService';
+import WorkoutService from './src/services/ProgramService';
 import AuthService from './src/services/AuthService';
 import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,47 +76,44 @@ export default function App() {
   // ── Tracker session state (accumulated set_done events for IP calc) ──────────
   const sessionSetsRef = useRef([]); // [{ ex, reps }]
 
-  // Send accumulated session IP to backend and log the workout
+  // Send accumulated session data to backend: Journal entry + IP points
   const submitWorkoutSession = async () => {
     const sets = sessionSetsRef.current;
     sessionSetsRef.current = [];
     if (sets.length === 0) return;
 
     try {
-      const token = await AsyncStorage.getItem('accessToken') || await AsyncStorage.getItem('userToken');
-      if (!token) return;
-
-      // IP = sum of reps across all sets (weight unknown from BLE — tracker tracks reps only)
+      // IP = 1 point per rep (weight not available from BLE)
       const totalReps = sets.reduce((sum, s) => sum + (s.reps || 0), 0);
-      const ironPoints = totalReps; // 1 IP per rep; weight-based calc requires manual log
+      const ironPoints = totalReps;
 
-      if (ironPoints > 0) {
-        await fetch(`${API_BASE_URL}/auth/me/points`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ iron_points: ironPoints, endurance_points: 0 }),
-        });
-        console.log('[Session] Awarded', ironPoints, 'IP');
-      }
-
-      // Log workout completion
       const exerciseNames = [...new Set(sets.map(s => s.ex).filter(Boolean))];
-      await fetch(`${API_BASE_URL}/workout-logs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          workout_name: exerciseNames.length > 0
-            ? `Tracker workout (${exerciseNames.slice(0, 2).join(', ')}${exerciseNames.length > 2 ? '...' : ''})`
-            : 'Tracker workout',
-          notes: `${sets.length} sets completed via tracker`,
-        }),
-      });
+      const workoutName = exerciseNames.length > 0
+        ? `Tracker: ${exerciseNames.slice(0, 2).join(', ')}${exerciseNames.length > 2 ? '…' : ''}`
+        : 'Tracker workout';
+
+      // Create Journal entry
+      await WorkoutService.createWorkoutLog(
+        workoutName,
+        null,
+        new Date().toISOString(),
+        null,
+        `${sets.length} sets · ${totalReps} total reps · ${ironPoints} IP earned`,
+      );
+      console.log('[Session] Journal entry saved');
+
+      // Award points
+      if (ironPoints > 0) {
+        const token = await AsyncStorage.getItem('accessToken') || await AsyncStorage.getItem('userToken');
+        if (token) {
+          await fetch(`${API_BASE_URL}/auth/me/points`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ iron_points: ironPoints, endurance_points: 0 }),
+          });
+          console.log('[Session] Awarded', ironPoints, 'IP');
+        }
+      }
     } catch (e) {
       console.error('[Session] Submit error:', e.message);
     }
@@ -198,6 +196,10 @@ export default function App() {
       setIsLoggedIn(loggedIn);
       if (loggedIn) {
         await loadUserData();
+        // Ensure notification channel is set up even on auto-login (no call to handleLogin)
+        try {
+          await notificationsService.requestPermissions();
+        } catch (_) {}
       }
     } catch (error) {
       console.error('Error checking login status:', error);
@@ -272,6 +274,7 @@ export default function App() {
         ) : (
           <Tab.Navigator
             screenOptions={({ route }) => ({
+              lazy: false,
               tabBarIcon: ({ focused, color, size }) => {
                 let iconName;
                 if (route.name === 'Dashboard') {

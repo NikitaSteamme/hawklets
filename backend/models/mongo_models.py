@@ -85,6 +85,7 @@ class TemplateItem(BaseModel):
     exercise_id: str
     # Populated at read time by joining with exercises_global; not stored in DB
     exercise_name: Optional[str] = None
+    exercise_type: Optional[str] = None  # e.g. 'imu', 'timed', 'cardio'
     order_index: int
     target_sets: Optional[int] = None
     target_reps_min: Optional[int] = None
