@@ -22,6 +22,7 @@ import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hawklets.com/api';
+const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'your-api-key-change-in-production';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -106,12 +107,17 @@ export default function App() {
       if (ironPoints > 0) {
         const token = await AsyncStorage.getItem('accessToken') || await AsyncStorage.getItem('userToken');
         if (token) {
-          await fetch(`${API_BASE_URL}/auth/me/points`, {
+          const pointsRes = await fetch(`${API_BASE_URL}/auth/me/points`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'X-API-Key': API_KEY,
+            },
             body: JSON.stringify({ iron_points: ironPoints, endurance_points: 0 }),
           });
-          console.log('[Session] Awarded', ironPoints, 'IP');
+          const pointsData = await pointsRes.json().catch(() => ({}));
+          console.log('[Session] Points response:', pointsRes.status, JSON.stringify(pointsData));
         }
       }
     } catch (e) {

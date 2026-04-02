@@ -29,12 +29,14 @@ function CreateRoutineModal({ visible, workouts, routines, onClose, onSave, onSe
   const [tab, setTab] = useState('new'); // 'new' | 'manage'
   const [routineName, setRoutineName] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [workoutsPerWeek, setWorkoutsPerWeek] = useState('3');
 
   useEffect(() => {
     if (visible) {
       setTab('new');
       setRoutineName('');
       setSelectedIds([]);
+      setWorkoutsPerWeek('3');
     }
   }, [visible]);
 
@@ -53,7 +55,8 @@ function CreateRoutineModal({ visible, workouts, routines, onClose, onSave, onSe
       Alert.alert('Validation', 'Please select at least one workout');
       return;
     }
-    onSave(routineName.trim(), selectedIds);
+    const wpw = Math.min(7, Math.max(1, parseInt(workoutsPerWeek) || 3));
+    onSave(routineName.trim(), selectedIds, wpw);
     onClose();
   };
 
@@ -66,6 +69,22 @@ function CreateRoutineModal({ visible, workouts, routines, onClose, onSave, onSe
         { text: 'Delete', style: 'destructive', onPress: () => onDelete(routine.id) },
       ]
     );
+  };
+
+  const handleSetActive = (routineId) => {
+    const currentActive = routines.find(r => r.is_active);
+    if (currentActive && currentActive.id !== routineId && (currentActive.streak || 0) * 7 > 6) {
+      Alert.alert(
+        '⚠️ Streak Warning',
+        `You have a ${currentActive.streak}-week streak on "${currentActive.name}". Switching routines will reset your streak to zero.`,
+        [
+          { text: 'Keep current', style: 'cancel' },
+          { text: 'Switch anyway', style: 'destructive', onPress: () => onSetActive(routineId) },
+        ]
+      );
+    } else {
+      onSetActive(routineId);
+    }
   };
 
   return (
@@ -111,6 +130,15 @@ function CreateRoutineModal({ visible, workouts, routines, onClose, onSave, onSe
               placeholder="e.g. 5-Day Power Block"
               value={routineName}
               onChangeText={setRoutineName}
+            />
+
+            <Text style={[rmStyles.label, { marginTop: 16 }]}>Workouts per Week</Text>
+            <TextInput
+              style={[rmStyles.input, { width: 80 }]}
+              keyboardType="numeric"
+              placeholder="3"
+              value={workoutsPerWeek}
+              onChangeText={setWorkoutsPerWeek}
             />
 
             <Text style={[rmStyles.label, { marginTop: 24 }]}>Add Workouts</Text>
@@ -168,14 +196,15 @@ function CreateRoutineModal({ visible, workouts, routines, onClose, onSave, onSe
                       {r.name}
                     </Text>
                     <Text style={rmStyles.routineRowMeta}>
-                      {r.workout_ids?.length || 0} workouts
+                      {r.workout_ids?.length || 0} workouts · {r.workouts_per_week || 3}×/week
+                      {r.is_active && r.streak > 0 ? `  🔥 ${r.streak}w streak` : ''}
                     </Text>
                   </View>
                   <View style={rmStyles.routineRowActions}>
                     {!r.is_active && (
                       <TouchableOpacity
                         style={rmStyles.setActiveBtn}
-                        onPress={() => onSetActive(r.id)}
+                        onPress={() => handleSetActive(r.id)}
                       >
                         <Text style={rmStyles.setActiveBtnText}>Set Active</Text>
                       </TouchableOpacity>
@@ -383,9 +412,9 @@ const WorkoutsScreen = () => {
     return palette[index % palette.length];
   };
 
-  const handleRoutineCreated = async (name, workoutIds) => {
+  const handleRoutineCreated = async (name, workoutIds, workoutsPerWeek) => {
     try {
-      const created = await WorkoutService.createRoutine(name, workoutIds);
+      const created = await WorkoutService.createRoutine(name, workoutIds, workoutsPerWeek);
       setRoutines(prev => [...prev, created]);
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to create routine');

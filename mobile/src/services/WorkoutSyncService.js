@@ -58,7 +58,7 @@ export function formatWorkoutForTracker(apiWorkout) {
         type,
         sets: item.target_sets ?? 3,
         restAfterSetSec: item.rest_sec ?? 90,
-        reps: item.target_reps_max ?? item.target_reps_min ?? 10,
+        reps: item.target_reps_min ?? item.target_reps_max ?? 10,
         durationSec: item.target_duration_sec ?? null,
         inactivityTimeoutMs: 45000,
       };

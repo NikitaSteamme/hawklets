@@ -107,6 +107,7 @@ class RoutineCreate(BaseModel):
     """Модель для создания Routine"""
     name: str
     workout_ids: List[str] = Field(default_factory=list)
+    workouts_per_week: int = Field(default=3, ge=1, le=7)
 
 
 class RoutineUpdate(BaseModel):
@@ -114,6 +115,7 @@ class RoutineUpdate(BaseModel):
     name: Optional[str] = None
     workout_ids: Optional[List[str]] = None
     is_active: Optional[bool] = None
+    workouts_per_week: Optional[int] = Field(default=None, ge=1, le=7)
 
 
 class RoutineResponse(BaseModel):
@@ -123,6 +125,8 @@ class RoutineResponse(BaseModel):
     workout_ids: List[str]
     is_active: bool
     owner_id: str
+    workouts_per_week: int = 3
+    streak: int = 0  # computed: consecutive weeks meeting workouts_per_week target
     created_at: datetime
     updated_at: datetime
 

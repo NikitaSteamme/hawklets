@@ -86,10 +86,10 @@ const WorkoutService = {
     return apiRequest(`/routines/${routineId}`);
   },
 
-  createRoutine: async (name, workoutIds) => {
+  createRoutine: async (name, workoutIds, workoutsPerWeek = 3) => {
     return apiRequest('/routines', {
       method: 'POST',
-      body: JSON.stringify({ name, workout_ids: workoutIds }),
+      body: JSON.stringify({ name, workout_ids: workoutIds, workouts_per_week: workoutsPerWeek }),
     });
   },
 

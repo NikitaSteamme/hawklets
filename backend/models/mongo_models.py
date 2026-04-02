@@ -121,6 +121,9 @@ class Routine(BaseDocument, OwnerMixin):
     name: str
     workout_ids: List[str] = Field(default_factory=list)
     is_active: bool = Field(default=False)
+    workouts_per_week: int = Field(default=3)
+    # Set to now() when this routine becomes active; all logs before this date don't count towards streak
+    streak_started_at: Optional[datetime] = None
 
     class Config:
         collection_name = "routines"
